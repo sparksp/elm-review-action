@@ -34,7 +34,7 @@ const elmReviewArgs = (): string[] => {
   ]
 }
 
-const runElmReview = async (): Promise<Report> => {
+const runElmReview = async (): Promise<ReviewErrors> => {
   let output = ''
   let errput = ''
 
@@ -64,7 +64,7 @@ const runElmReview = async (): Promise<Report> => {
   }
 }
 
-type Report = {
+type ReviewErrors = {
   type: 'review-errors'
   errors: ReviewError[]
 }
@@ -78,30 +78,28 @@ type ReviewMessage = {
   message: string
   rule: string
   details: string[]
-  region: {
-    start: Region
-    end: Region
-  }
+  region: Region
 }
 
 type Region = {
+  start: Location
+  end: Location
+}
+
+type Location = {
   line: number
   column: number
 }
 
-const issueReport = (report: Report): number => {
+const reportErrors = (errors: ReviewErrors): number => {
   let reported = 0
-  for (const error of report.errors) {
+  for (const error of errors.errors) {
     for (const message of error.errors) {
-      issueCommand(
-        'error',
-        {
-          file: error.path,
-          line: message.region.start.line,
-          col: message.region.start.column
-        },
-        message.message
-      )
+      issueError(message.message, {
+        file: error.path,
+        line: message.region.start.line,
+        col: message.region.start.column
+      })
 
       reported++
     }
@@ -130,11 +128,22 @@ type UnexpectedError = {
   error: string
 }
 
-function issueError(error: Error): void
-function issueError(error: CliError): void
-function issueError(error: UnexpectedError): void
+type ErrorOpts = {
+  file?: string
+  line?: number
+  col?: number
+}
 
-function issueError(error: Error | CliError | UnexpectedError): void {
+function issueError(message: string, opts: ErrorOpts): void {
+  issueCommand('error', opts, message.trim().replace('\n', '%0A'))
+  process.exitCode = core.ExitCode.Failure
+}
+
+function reportCliError(error: Error): void
+function reportCliError(error: CliError): void
+function reportCliError(error: UnexpectedError): void
+
+function reportCliError(error: Error | CliError | UnexpectedError): void {
   let message: string
   if ('message' in error) {
     message = error.message
@@ -142,25 +151,24 @@ function issueError(error: Error | CliError | UnexpectedError): void {
     message = error.error
   }
 
-  const opts: {file?: string} = {}
+  const opts: ErrorOpts = {}
   if ('path' in error) {
     opts.file = error.path
   }
 
-  issueCommand('error', opts, message.trim().replace('\n', '%0A'))
-  process.exitCode = core.ExitCode.Failure
+  issueError(message, opts)
 }
 
 async function run(): Promise<void> {
   try {
     const report = await runElmReview()
-    reportFailure(issueReport(report))
+    reportFailure(reportErrors(report))
   } catch (e) {
     try {
       const error = JSON.parse(e.message)
-      issueError(error)
+      reportCliError(error)
     } catch (_) {
-      issueError(e)
+      reportCliError(e)
     }
   }
 }

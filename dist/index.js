@@ -1058,15 +1058,15 @@ const runElmReview = () => __awaiter(void 0, void 0, void 0, function* () {
         throw Error(output);
     }
 });
-const issueReport = (report) => {
+const reportErrors = (errors) => {
     let reported = 0;
-    for (const error of report.errors) {
+    for (const error of errors.errors) {
         for (const message of error.errors) {
-            command_1.issueCommand('error', {
+            issueError(message.message, {
                 file: error.path,
                 line: message.region.start.line,
                 col: message.region.start.column
-            }, message.message);
+            });
             reported++;
         }
     }
@@ -1077,7 +1077,11 @@ const reportFailure = (reported) => {
         core.setFailed(`elm-review reported ${reported} ${reported === 1 ? 'error' : 'errors'}`);
     }
 };
-function issueError(error) {
+function issueError(message, opts) {
+    command_1.issueCommand('error', opts, message.trim().replace('\n', '%0A'));
+    process.exitCode = core.ExitCode.Failure;
+}
+function reportCliError(error) {
     let message;
     if ('message' in error) {
         message = error.message;
@@ -1089,22 +1093,21 @@ function issueError(error) {
     if ('path' in error) {
         opts.file = error.path;
     }
-    command_1.issueCommand('error', opts, message.trim().replace('\n', '%0A'));
-    process.exitCode = core.ExitCode.Failure;
+    issueError(message, opts);
 }
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const report = yield runElmReview();
-            reportFailure(issueReport(report));
+            reportFailure(reportErrors(report));
         }
         catch (e) {
             try {
                 const error = JSON.parse(e.message);
-                issueError(error);
+                reportCliError(error);
             }
             catch (_) {
-                issueError(e);
+                reportCliError(e);
             }
         }
     });
