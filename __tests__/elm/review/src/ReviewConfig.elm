@@ -11,9 +11,13 @@ when inside the directory containing this file.
 
 -}
 
+import NoExposingEverything
+import NoImportingEverything
 import Review.Rule exposing (Rule)
 
 
 config : List Rule
 config =
-    []
+    [ NoExposingEverything.rule
+    , NoImportingEverything.rule []
+    ]

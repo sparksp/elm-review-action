@@ -1003,13 +1003,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const exec = __importStar(__webpack_require__(986));
-const elmReviewCmd = core.getInput('elm_review', {
-    required: true
-});
-const elmFiles = core.getInput('elm_files', {
-    required: true
-});
+const command_1 = __webpack_require__(431);
+const elmReviewCmd = core.getInput('elm_review', { required: true });
+const elmJson = core.getInput('elm_json', { required: true });
+const elmFiles = core.getInput('elm_files');
 const globFiles = (pattern) => __awaiter(void 0, void 0, void 0, function* () {
+    if (pattern === null) {
+        return [];
+    }
     return pattern.split('\n');
 });
 const runElmReview = () => __awaiter(void 0, void 0, void 0, function* () {
@@ -1028,21 +1029,34 @@ const runElmReview = () => __awaiter(void 0, void 0, void 0, function* () {
         silent: true
     };
     const files = yield globFiles(elmFiles);
-    if (files.length === 0) {
-        throw Error('No Elm files found, please check your ELM_FILES');
-    }
-    yield exec.exec(elmReviewCmd, [...files, '--report=json'], options);
+    yield exec.exec(elmReviewCmd, [...files, '--elmjson', elmJson, '--report=json'], options);
     if (errput.length > 0) {
         throw Error(errput);
     }
     return JSON.parse(output);
 });
 const issueErrors = (report) => {
-    return report.errors.length;
+    let reported = 0;
+    for (const error of report.errors) {
+        for (const message of error.errors) {
+            command_1.issueCommand('error', {
+                file: error.path,
+                line: message.region.start.line,
+                col: message.region.start.column
+            }, message.message);
+            reported++;
+        }
+    }
+    return reported;
+};
+const issueReviewError = (report) => {
+    command_1.issueCommand('error', {
+        file: report.path
+    }, report.message.replace('\n', '%0A'));
 };
 const reportFailure = (reported) => {
     if (reported) {
-        core.setFailed(`elm-review reported errors with ${reported} ${reported === 1 ? 'file' : 'files'}`);
+        core.setFailed(`elm-review reported ${reported} ${reported === 1 ? 'error' : 'errors'}`);
     }
 };
 function run() {
@@ -1052,7 +1066,13 @@ function run() {
             reportFailure(issueErrors(report));
         }
         catch (error) {
-            core.setFailed(error.message);
+            try {
+                const elmReviewError = JSON.parse(error.message);
+                issueReviewError(elmReviewError);
+            }
+            catch (_) {
+                core.setFailed(error.message);
+            }
         }
     });
 }
