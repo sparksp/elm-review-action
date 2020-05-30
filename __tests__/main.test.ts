@@ -36,6 +36,28 @@ test('runs quietly on success', () => {
   expect(status).toBe(0) // Success!
 })
 
+test('configures elm-review path', () => {
+  const env = {
+    ...process.env,
+    ...defaultEnv,
+    INPUT_ELM_REVIEW: path.join(__dirname, 'bin', 'not-elm-review')
+  }
+
+  const ip = path.join(__dirname, '..', 'lib', 'main.js')
+  const options: cp.ExecSyncOptions = {env}
+
+  let stdout = ''
+  let status = 0
+  try {
+    cp.execSync(`node ${ip}`, options)
+  } catch (e) {
+    stdout = e.stdout.toString()
+    status = e.status
+  }
+  expect(stdout).toBe('::error::This is not elm-review!\n')
+  expect(status).toBe(1)
+})
+
 test('allows configurable elm.json', () => {
   const env = {
     ...process.env,
@@ -45,9 +67,7 @@ test('allows configurable elm.json', () => {
   }
 
   const ip = path.join(__dirname, '..', 'lib', 'main.js')
-  const options: cp.ExecSyncOptions = {
-    env
-  }
+  const options: cp.ExecSyncOptions = {env}
 
   let stdout = ''
   let status = 0

@@ -1033,7 +1033,12 @@ const runElmReview = () => __awaiter(void 0, void 0, void 0, function* () {
     if (errput.length > 0) {
         throw Error(errput);
     }
-    return JSON.parse(output);
+    try {
+        return JSON.parse(output);
+    }
+    catch (_) {
+        throw Error(output);
+    }
 });
 const issueErrors = (report) => {
     let reported = 0;
@@ -1071,7 +1076,7 @@ function run() {
                 issueReviewError(elmReviewError);
             }
             catch (_) {
-                core.setFailed(error.message);
+                core.setFailed(error.message.trimEnd());
             }
         }
     });

@@ -43,7 +43,11 @@ const runElmReview = async (): Promise<Report> => {
     throw Error(errput)
   }
 
-  return JSON.parse(output)
+  try {
+    return JSON.parse(output)
+  } catch (_) {
+    throw Error(output)
+  }
 }
 
 type Report = {
@@ -125,7 +129,7 @@ async function run(): Promise<void> {
       const elmReviewError = JSON.parse(error.message)
       issueReviewError(elmReviewError)
     } catch (_) {
-      core.setFailed(error.message)
+      core.setFailed(error.message.trimEnd())
     }
   }
 }
