@@ -9,7 +9,6 @@
     "format-check": "prettier --check **/*.ts",
     "lint": "eslint src/**/*.ts",
     "pack": "ncc build",
-    "pretest": "tsc",
     "test": "jest",
     "all": "run-s build format lint pack test ;"
   },

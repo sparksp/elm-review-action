@@ -1,11 +1,10 @@
 module.exports = {
-  clearMocks: true,
-  moduleFileExtensions: ['js', 'ts'],
+  preset: 'ts-jest',
   testEnvironment: 'node',
   testMatch: ['**/*.test.ts'],
-  testRunner: 'jest-circus/runner',
+  testPathIgnorePatterns: ['/lib/', '/node_modules/'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   transform: {
-    '^.+\\.ts$': 'ts-jest'
-  },
-  verbose: true
+    '^.+\\.tsx?$': 'ts-jest'
+  }
 }

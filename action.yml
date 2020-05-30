@@ -9,10 +9,18 @@ inputs:
     description: 'Your elm-review command'
     required: true
     default: 'elm-review'
+  elm_review_config:
+    description: 'Use the review configuration in the specified directory instead of the one found in the current directory or one of its parents.'
+    required: false
+  elm_compiler:
+    description: 'Specify the path to the elm compiler.'
+    required: false
+  elm_format:
+    description: 'Specify the path to elm-format.'
+    required: false
   elm_json:
-    description: 'Relative path to your elm.json'
-    required: true
-    default: 'elm.json'
+    description: 'Specify the path to the elm.json file of the project. By default, the one in the current directory or its parent directories will be used.'
+    required: false
   elm_files:
     description: 'List of Elm files you wish to review'
     required: false

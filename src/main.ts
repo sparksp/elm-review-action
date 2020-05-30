@@ -2,17 +2,36 @@ import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import {issueCommand} from '@actions/core/lib/command'
 
-const elmReviewCmd = core.getInput('elm_review', {required: true})
+const inputElmReview = core.getInput('elm_review', {required: true})
+const inputElmReviewConfig = core.getInput('elm_review_config')
+const inputElmCompiler = core.getInput('elm_compiler')
+const inputElmFormat = core.getInput('elm_format')
+const inputElmJson = core.getInput('elm_json')
+const inputElmFiles = core.getInput('elm_files')
 
-const elmJson = core.getInput('elm_json', {required: true})
-
-const elmFiles = core.getInput('elm_files')
-
-const globFiles = async (pattern: string | null): Promise<string[]> => {
-  if (pattern === null) {
-    return []
+const elmReviewArgs = (): string[] => {
+  const arg = (flag: string, value: string): string[] => {
+    if (value === '') {
+      return []
+    }
+    return [flag, value]
   }
-  return pattern.split('\n')
+
+  const globFiles = (pattern: string): string[] => {
+    if (pattern === '') {
+      return []
+    }
+    return pattern.split('\n')
+  }
+
+  return [
+    ...globFiles(inputElmFiles),
+    '--report=json',
+    ...arg('--config', inputElmReviewConfig),
+    ...arg('--compiler', inputElmCompiler),
+    ...arg('--elm-format-path', inputElmFormat),
+    ...arg('--elmjson', inputElmJson)
+  ]
 }
 
 const runElmReview = async (): Promise<Report> => {
@@ -32,18 +51,17 @@ const runElmReview = async (): Promise<Report> => {
     silent: true
   }
 
-  const files = await globFiles(elmFiles)
-  await exec.exec(
-    elmReviewCmd,
-    [...files, '--elmjson', elmJson, '--report=json'],
-    options
-  )
+  await exec.exec(inputElmReview, elmReviewArgs(), options)
 
   if (errput.length > 0) {
     throw Error(errput)
   }
 
-  return JSON.parse(output)
+  try {
+    return JSON.parse(output)
+  } catch (_) {
+    throw Error(output)
+  }
 }
 
 type Report = {
@@ -71,14 +89,7 @@ type Region = {
   column: number
 }
 
-type GlobalError = {
-  type: 'error'
-  title: string
-  path: string
-  message: string
-}
-
-const issueErrors = (report: Report): number => {
+const issueReport = (report: Report): number => {
   let reported = 0
   for (const error of report.errors) {
     for (const message of error.errors) {
@@ -98,16 +109,6 @@ const issueErrors = (report: Report): number => {
   return reported
 }
 
-const issueReviewError = (report: GlobalError): void => {
-  issueCommand(
-    'error',
-    {
-      file: report.path
-    },
-    report.message.replace('\n', '%0A')
-  )
-}
-
 const reportFailure = (reported: number): void => {
   if (reported) {
     core.setFailed(
@@ -116,16 +117,50 @@ const reportFailure = (reported: number): void => {
   }
 }
 
+type CliError = {
+  type: 'error'
+  title: string
+  path: string
+  message: string
+}
+
+type UnexpectedError = {
+  title: string
+  path: string
+  error: string
+}
+
+function issueError(error: Error): void
+function issueError(error: CliError): void
+function issueError(error: UnexpectedError): void
+
+function issueError(error: Error | CliError | UnexpectedError): void {
+  let message: string
+  if ('message' in error) {
+    message = error.message
+  } else {
+    message = error.error
+  }
+
+  const opts: {file?: string} = {}
+  if ('path' in error) {
+    opts.file = error.path
+  }
+
+  issueCommand('error', opts, message.trim().replace('\n', '%0A'))
+  process.exitCode = core.ExitCode.Failure
+}
+
 async function run(): Promise<void> {
   try {
     const report = await runElmReview()
-    reportFailure(issueErrors(report))
-  } catch (error) {
+    reportFailure(issueReport(report))
+  } catch (e) {
     try {
-      const elmReviewError = JSON.parse(error.message)
-      issueReviewError(elmReviewError)
+      const error = JSON.parse(e.message)
+      issueError(error)
     } catch (_) {
-      core.setFailed(error.message)
+      issueError(e)
     }
   }
 }

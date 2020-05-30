@@ -1004,15 +1004,34 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const exec = __importStar(__webpack_require__(986));
 const command_1 = __webpack_require__(431);
-const elmReviewCmd = core.getInput('elm_review', { required: true });
-const elmJson = core.getInput('elm_json', { required: true });
-const elmFiles = core.getInput('elm_files');
-const globFiles = (pattern) => __awaiter(void 0, void 0, void 0, function* () {
-    if (pattern === null) {
-        return [];
-    }
-    return pattern.split('\n');
-});
+const inputElmReview = core.getInput('elm_review', { required: true });
+const inputElmReviewConfig = core.getInput('elm_review_config');
+const inputElmCompiler = core.getInput('elm_compiler');
+const inputElmFormat = core.getInput('elm_format');
+const inputElmJson = core.getInput('elm_json');
+const inputElmFiles = core.getInput('elm_files');
+const elmReviewArgs = () => {
+    const arg = (flag, value) => {
+        if (value === '') {
+            return [];
+        }
+        return [flag, value];
+    };
+    const globFiles = (pattern) => {
+        if (pattern === '') {
+            return [];
+        }
+        return pattern.split('\n');
+    };
+    return [
+        ...globFiles(inputElmFiles),
+        '--report=json',
+        ...arg('--config', inputElmReviewConfig),
+        ...arg('--compiler', inputElmCompiler),
+        ...arg('--elm-format-path', inputElmFormat),
+        ...arg('--elmjson', inputElmJson)
+    ];
+};
 const runElmReview = () => __awaiter(void 0, void 0, void 0, function* () {
     let output = '';
     let errput = '';
@@ -1028,14 +1047,18 @@ const runElmReview = () => __awaiter(void 0, void 0, void 0, function* () {
         },
         silent: true
     };
-    const files = yield globFiles(elmFiles);
-    yield exec.exec(elmReviewCmd, [...files, '--elmjson', elmJson, '--report=json'], options);
+    yield exec.exec(inputElmReview, elmReviewArgs(), options);
     if (errput.length > 0) {
         throw Error(errput);
     }
-    return JSON.parse(output);
+    try {
+        return JSON.parse(output);
+    }
+    catch (_) {
+        throw Error(output);
+    }
 });
-const issueErrors = (report) => {
+const issueReport = (report) => {
     let reported = 0;
     for (const error of report.errors) {
         for (const message of error.errors) {
@@ -1049,29 +1072,39 @@ const issueErrors = (report) => {
     }
     return reported;
 };
-const issueReviewError = (report) => {
-    command_1.issueCommand('error', {
-        file: report.path
-    }, report.message.replace('\n', '%0A'));
-};
 const reportFailure = (reported) => {
     if (reported) {
         core.setFailed(`elm-review reported ${reported} ${reported === 1 ? 'error' : 'errors'}`);
     }
 };
+function issueError(error) {
+    let message;
+    if ('message' in error) {
+        message = error.message;
+    }
+    else {
+        message = error.error;
+    }
+    const opts = {};
+    if ('path' in error) {
+        opts.file = error.path;
+    }
+    command_1.issueCommand('error', opts, message.trim().replace('\n', '%0A'));
+    process.exitCode = core.ExitCode.Failure;
+}
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const report = yield runElmReview();
-            reportFailure(issueErrors(report));
+            reportFailure(issueReport(report));
         }
-        catch (error) {
+        catch (e) {
             try {
-                const elmReviewError = JSON.parse(error.message);
-                issueReviewError(elmReviewError);
+                const error = JSON.parse(e.message);
+                issueError(error);
             }
             catch (_) {
-                core.setFailed(error.message);
+                issueError(e);
             }
         }
     });
