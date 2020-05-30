@@ -1,0 +1,34 @@
+name: "build-test"
+on: # rebuild any PRs and main branch changes
+  pull_request:
+  push:
+    branches:
+      - master
+      - 'releases/*'
+
+jobs:
+  build: # make sure build/ci work properly
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: yarn
+    - run: yarn run all
+  test: # make sure the action works on a clean machine without building
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: yarn --frozen-lockfile
+    - name: Add elm-review, elm and elm-format to path
+      run: echo ::add-path::$(yarn bin)
+    - uses: ./
+      with: 
+        # elm_review: elm-review
+        # elm: elm
+        # elm_format: elm-format
+        elm_files: __tests__/elm/Good.elm
+    - uses: ./
+      with: # make sure that globbing works
+        elm_glob: true
+        elm_files: |
+          __tests__/**/*.elm
+          !**/Bad.elm

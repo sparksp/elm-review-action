@@ -1,0 +1,16 @@
+name: 'elm-review'
+description: 'Use elm-review to check code quality'
+author: 'Phill Sparks'
+branding:
+  icon: check-circle
+  color: orange
+inputs:
+  elm_review:
+    description: 'Your elm-review command'
+    default: 'elm-review'
+  elm_files:
+    description: 'List of Elm files you wish to review'
+    default: 'src/'
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
