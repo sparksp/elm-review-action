@@ -7,10 +7,15 @@ branding:
 inputs:
   elm_review:
     description: 'Your elm-review command'
+    required: true
     default: 'elm-review'
+  elm_json:
+    description: 'Relative path to your elm.json'
+    required: true
+    default: 'elm.json'
   elm_files:
     description: 'List of Elm files you wish to review'
-    default: 'src/'
+    required: false
 runs:
   using: 'node12'
   main: 'dist/index.js'

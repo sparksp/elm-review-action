@@ -13,6 +13,7 @@ jobs:
     - uses: actions/checkout@v2
     - run: yarn
     - run: yarn run all
+
   test: # make sure the action works on a clean machine without building
     runs-on: ubuntu-latest
     steps:
@@ -21,14 +22,21 @@ jobs:
     - name: Add elm-review, elm and elm-format to path
       run: echo ::add-path::$(yarn bin)
     - uses: ./
-      with: 
-        # elm_review: elm-review
-        # elm: elm
-        # elm_format: elm-format
-        elm_files: __tests__/elm/Good.elm
+      with:
+        # elm_review: elm-review
+        elm_json: __tests__/elm/elm.json
+        elm_files: __tests__/elm/src/Good.elm
+
+  test-failure: # make sure the action works on a clean machine without building
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: yarn --frozen-lockfile
+    - name: Add elm-review, elm and elm-format to path
+      run: echo ::add-path::$(yarn bin)
     - uses: ./
-      with: # make sure that globbing works
-        elm_glob: true
-        elm_files: |
-          __tests__/**/*.elm
-          !**/Bad.elm
+      with:
+        # elm_review: elm-review
+        elm_json: __tests__/elm/elm.json
+        # elm_files:
+      continue-on-error: true

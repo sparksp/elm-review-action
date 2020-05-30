@@ -1,6 +1,6 @@
 {
   "name": "elm-review-action",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Use elm-review to check code quality",
   "main": "lib/main.js",
   "scripts": {
