@@ -56,6 +56,27 @@ test('configures elm-review path', () => {
   expect(status).toBe(1)
 })
 
+test('configures review configuration', () => {
+  const env = {
+    ...defaultEnv,
+    INPUT_ELM_REVIEW: path.join(__dirname, 'bin', 'elm-review-args'),
+    INPUT_ELM_REVIEW_CONFIG: '/path/to/review'
+  }
+
+  let stdout = ''
+  let status = 0
+  try {
+    runAction({env})
+  } catch (e) {
+    stdout = e.stdout.toString()
+    status = e.status
+  }
+  expect(stdout).toBe(
+    '::error::elm-review --report=json --config /path/to/review\n'
+  )
+  expect(status).toBe(1)
+})
+
 test('configures elm compiler path', () => {
   const env = {
     ...defaultEnv,

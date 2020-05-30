@@ -5,25 +5,11 @@ import {issueCommand} from '@actions/core/lib/command'
 const elmReviewCmd = core.getInput('elm_review', {required: true})
 
 const elmReviewArgs = (): string[] => {
-  const elmCompilerArgs = (elmCompiler: string): string[] => {
-    if (elmCompiler === '') {
+  const arg = (flag: string, value: string): string[] => {
+    if (value === '') {
       return []
     }
-    return ['--compiler', elmCompiler]
-  }
-
-  const elmFormatArgs = (elmFormat: string): string[] => {
-    if (elmFormat === '') {
-      return []
-    }
-    return ['--elm-format-path', elmFormat]
-  }
-
-  const elmJsonArgs = (elmJson: string): string[] => {
-    if (elmJson === '') {
-      return []
-    }
-    return ['--elmjson', elmJson]
+    return [flag, value]
   }
 
   const globFiles = (pattern: string | null): string[] => {
@@ -38,9 +24,10 @@ const elmReviewArgs = (): string[] => {
   return [
     ...files,
     '--report=json',
-    ...elmCompilerArgs(core.getInput('elm_compiler')),
-    ...elmFormatArgs(core.getInput('elm_format')),
-    ...elmJsonArgs(core.getInput('elm_json'))
+    ...arg('--config', core.getInput('elm_review_config')),
+    ...arg('--compiler', core.getInput('elm_compiler')),
+    ...arg('--elm-format-path', core.getInput('elm_format')),
+    ...arg('--elmjson', core.getInput('elm_json'))
   ]
 }
 

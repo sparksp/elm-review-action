@@ -1006,23 +1006,11 @@ const exec = __importStar(__webpack_require__(986));
 const command_1 = __webpack_require__(431);
 const elmReviewCmd = core.getInput('elm_review', { required: true });
 const elmReviewArgs = () => {
-    const elmCompilerArgs = (elmCompiler) => {
-        if (elmCompiler === '') {
+    const arg = (flag, value) => {
+        if (value === '') {
             return [];
         }
-        return ['--compiler', elmCompiler];
-    };
-    const elmFormatArgs = (elmFormat) => {
-        if (elmFormat === '') {
-            return [];
-        }
-        return ['--elm-format-path', elmFormat];
-    };
-    const elmJsonArgs = (elmJson) => {
-        if (elmJson === '') {
-            return [];
-        }
-        return ['--elmjson', elmJson];
+        return [flag, value];
     };
     const globFiles = (pattern) => {
         if (pattern === null) {
@@ -1034,9 +1022,10 @@ const elmReviewArgs = () => {
     return [
         ...files,
         '--report=json',
-        ...elmCompilerArgs(core.getInput('elm_compiler')),
-        ...elmFormatArgs(core.getInput('elm_format')),
-        ...elmJsonArgs(core.getInput('elm_json'))
+        ...arg('--config', core.getInput('elm_review_config')),
+        ...arg('--compiler', core.getInput('elm_compiler')),
+        ...arg('--elm-format-path', core.getInput('elm_format')),
+        ...arg('--elmjson', core.getInput('elm_json'))
     ];
 };
 const runElmReview = () => __awaiter(void 0, void 0, void 0, function* () {
