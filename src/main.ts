@@ -4,15 +4,36 @@ import {issueCommand} from '@actions/core/lib/command'
 
 const elmReviewCmd = core.getInput('elm_review', {required: true})
 
-const elmJson = core.getInput('elm_json', {required: true})
-
-const elmFiles = core.getInput('elm_files')
-
-const globFiles = async (pattern: string | null): Promise<string[]> => {
-  if (pattern === null) {
-    return []
+const elmReviewArgs = (): string[] => {
+  const elmCompilerArgs = (elmCompiler: string): string[] => {
+    if (elmCompiler === '') {
+      return []
+    }
+    return ['--compiler', elmCompiler]
   }
-  return pattern.split('\n')
+
+  const elmJsonArgs = (elmJson: string): string[] => {
+    if (elmJson === '') {
+      return []
+    }
+    return ['--elmjson', elmJson]
+  }
+
+  const globFiles = (pattern: string | null): string[] => {
+    if (pattern === null) {
+      return []
+    }
+    return pattern.split('\n')
+  }
+
+  const files = globFiles(core.getInput('elm_files'))
+
+  return [
+    ...files,
+    '--report=json',
+    ...elmCompilerArgs(core.getInput('elm_compiler')),
+    ...elmJsonArgs(core.getInput('elm_json'))
+  ]
 }
 
 const runElmReview = async (): Promise<Report> => {
@@ -32,12 +53,7 @@ const runElmReview = async (): Promise<Report> => {
     silent: true
   }
 
-  const files = await globFiles(elmFiles)
-  await exec.exec(
-    elmReviewCmd,
-    [...files, '--elmjson', elmJson, '--report=json'],
-    options
-  )
+  await exec.exec(elmReviewCmd, elmReviewArgs(), options)
 
   if (errput.length > 0) {
     throw Error(errput)

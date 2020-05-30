@@ -3,31 +3,33 @@ import * as cp from 'child_process'
 import * as path from 'path'
 
 const defaultEnv = {
-  INPUT_ELM_REVIEW: 'elm-review',
-  INPUT_ELM_JSON: 'elm.json'
+  ...process.env,
+  INPUT_ELM_REVIEW: 'elm-review'
 }
 
 const elmPath = (...file: string[]): string => {
   return path.join('__tests__', 'elm', ...file)
 }
 
+const runAction = (options: cp.ExecSyncOptions): Buffer => {
+  const ip = path.join(__dirname, '..', 'lib', 'main.js')
+  return cp.execSync(`node ${ip}`, options)
+}
+
 test('runs quietly on success', () => {
   const env = {
-    ...process.env,
     ...defaultEnv,
     INPUT_ELM_FILES: path.join('src', 'Good.elm')
-  }
-
-  const ip = path.join(__dirname, '..', 'lib', 'main.js')
-  const options: cp.ExecSyncOptions = {
-    cwd: path.join(__dirname, 'elm'),
-    env
   }
 
   let stdout = ''
   let status = 0
   try {
-    cp.execSync(`node ${ip}`, options)
+    const output = runAction({
+      cwd: path.join(__dirname, 'elm'),
+      env
+    })
+    stdout = output.toString()
   } catch (e) {
     stdout = e.stdout.toString()
     status = e.status
@@ -38,63 +40,75 @@ test('runs quietly on success', () => {
 
 test('configures elm-review path', () => {
   const env = {
-    ...process.env,
     ...defaultEnv,
-    INPUT_ELM_REVIEW: path.join(__dirname, 'bin', 'not-elm-review')
+    INPUT_ELM_REVIEW: path.join(__dirname, 'bin', 'elm-review-args')
   }
-
-  const ip = path.join(__dirname, '..', 'lib', 'main.js')
-  const options: cp.ExecSyncOptions = {env}
 
   let stdout = ''
   let status = 0
   try {
-    cp.execSync(`node ${ip}`, options)
+    runAction({env})
   } catch (e) {
     stdout = e.stdout.toString()
     status = e.status
   }
-  expect(stdout).toBe('::error::This is not elm-review!\n')
+  expect(stdout).toBe('::error::elm-review --report=json\n')
   expect(status).toBe(1)
 })
 
-test('allows configurable elm.json', () => {
+test('configures elm compiler path', () => {
   const env = {
-    ...process.env,
     ...defaultEnv,
-    INPUT_ELM_JSON: elmPath('elm.json'),
-    INPUT_ELM_FILES: elmPath('src', 'Good.elm')
+    INPUT_ELM_REVIEW: path.join(__dirname, 'bin', 'elm-review-args'),
+    INPUT_ELM_COMPILER: '/path/to/elm'
   }
-
-  const ip = path.join(__dirname, '..', 'lib', 'main.js')
-  const options: cp.ExecSyncOptions = {env}
 
   let stdout = ''
   let status = 0
   try {
-    cp.execSync(`node ${ip}`, options)
+    runAction({env})
   } catch (e) {
     stdout = e.stdout.toString()
     status = e.status
   }
-  expect(stdout).toBe('')
-  expect(status).toBe(0) // Success!
+  expect(stdout).toBe(
+    '::error::elm-review --report=json --compiler /path/to/elm\n'
+  )
+  expect(status).toBe(1)
+})
+
+test('configures elm.json path', () => {
+  const env = {
+    ...defaultEnv,
+    INPUT_ELM_REVIEW: path.join(__dirname, 'bin', 'elm-review-args'),
+    INPUT_ELM_JSON: '/path/to/elm.json'
+  }
+
+  let stdout = ''
+  let status = 0
+  try {
+    runAction({env})
+  } catch (e) {
+    stdout = e.stdout.toString()
+    status = e.status
+  }
+  expect(stdout).toBe(
+    '::error::elm-review --report=json --elmjson /path/to/elm.json\n'
+  )
+  expect(status).toBe(1)
 })
 
 test('reports errors', () => {
   const env = {
-    ...process.env,
     ...defaultEnv,
     INPUT_ELM_JSON: elmPath('elm.json'),
     INPUT_ELM_FILES: elmPath('src', 'Bad.elm')
   }
-  const ip = path.join(__dirname, '..', 'lib', 'main.js')
-  const options: cp.ExecSyncOptions = {env}
 
   let stdout = ''
   let status = 0
   try {
-    cp.execSync(`node ${ip}`, options)
+    runAction({env})
   } catch (e) {
     stdout = e.stdout.toString()
     status = e.status

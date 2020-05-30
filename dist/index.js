@@ -1005,14 +1005,33 @@ const core = __importStar(__webpack_require__(470));
 const exec = __importStar(__webpack_require__(986));
 const command_1 = __webpack_require__(431);
 const elmReviewCmd = core.getInput('elm_review', { required: true });
-const elmJson = core.getInput('elm_json', { required: true });
-const elmFiles = core.getInput('elm_files');
-const globFiles = (pattern) => __awaiter(void 0, void 0, void 0, function* () {
-    if (pattern === null) {
-        return [];
-    }
-    return pattern.split('\n');
-});
+const elmReviewArgs = () => {
+    const elmCompilerArgs = (elmCompiler) => {
+        if (elmCompiler === '') {
+            return [];
+        }
+        return ['--compiler', elmCompiler];
+    };
+    const elmJsonArgs = (elmJson) => {
+        if (elmJson === '') {
+            return [];
+        }
+        return ['--elmjson', elmJson];
+    };
+    const globFiles = (pattern) => {
+        if (pattern === null) {
+            return [];
+        }
+        return pattern.split('\n');
+    };
+    const files = globFiles(core.getInput('elm_files'));
+    return [
+        ...files,
+        '--report=json',
+        ...elmCompilerArgs(core.getInput('elm_compiler')),
+        ...elmJsonArgs(core.getInput('elm_json'))
+    ];
+};
 const runElmReview = () => __awaiter(void 0, void 0, void 0, function* () {
     let output = '';
     let errput = '';
@@ -1028,8 +1047,7 @@ const runElmReview = () => __awaiter(void 0, void 0, void 0, function* () {
         },
         silent: true
     };
-    const files = yield globFiles(elmFiles);
-    yield exec.exec(elmReviewCmd, [...files, '--elmjson', elmJson, '--report=json'], options);
+    yield exec.exec(elmReviewCmd, elmReviewArgs(), options);
     if (errput.length > 0) {
         throw Error(errput);
     }
