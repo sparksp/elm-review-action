@@ -77,6 +77,27 @@ test('configures elm compiler path', () => {
   expect(status).toBe(1)
 })
 
+test('configures elm-format path', () => {
+  const env = {
+    ...defaultEnv,
+    INPUT_ELM_REVIEW: path.join(__dirname, 'bin', 'elm-review-args'),
+    INPUT_ELM_FORMAT: '/path/to/elm-format'
+  }
+
+  let stdout = ''
+  let status = 0
+  try {
+    runAction({env})
+  } catch (e) {
+    stdout = e.stdout.toString()
+    status = e.status
+  }
+  expect(stdout).toBe(
+    '::error::elm-review --report=json --elm-format-path /path/to/elm-format\n'
+  )
+  expect(status).toBe(1)
+})
+
 test('configures elm.json path', () => {
   const env = {
     ...defaultEnv,

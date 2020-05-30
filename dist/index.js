@@ -1012,6 +1012,12 @@ const elmReviewArgs = () => {
         }
         return ['--compiler', elmCompiler];
     };
+    const elmFormatArgs = (elmFormat) => {
+        if (elmFormat === '') {
+            return [];
+        }
+        return ['--elm-format-path', elmFormat];
+    };
     const elmJsonArgs = (elmJson) => {
         if (elmJson === '') {
             return [];
@@ -1029,6 +1035,7 @@ const elmReviewArgs = () => {
         ...files,
         '--report=json',
         ...elmCompilerArgs(core.getInput('elm_compiler')),
+        ...elmFormatArgs(core.getInput('elm_format')),
         ...elmJsonArgs(core.getInput('elm_json'))
     ];
 };

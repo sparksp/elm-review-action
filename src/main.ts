@@ -12,6 +12,13 @@ const elmReviewArgs = (): string[] => {
     return ['--compiler', elmCompiler]
   }
 
+  const elmFormatArgs = (elmFormat: string): string[] => {
+    if (elmFormat === '') {
+      return []
+    }
+    return ['--elm-format-path', elmFormat]
+  }
+
   const elmJsonArgs = (elmJson: string): string[] => {
     if (elmJson === '') {
       return []
@@ -32,6 +39,7 @@ const elmReviewArgs = (): string[] => {
     ...files,
     '--report=json',
     ...elmCompilerArgs(core.getInput('elm_compiler')),
+    ...elmFormatArgs(core.getInput('elm_format')),
     ...elmJsonArgs(core.getInput('elm_json'))
   ]
 }
