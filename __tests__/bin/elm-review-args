@@ -1,4 +1,4 @@
 #!/bin/sh
 
-echo "elm-review$@"
+echo "elm-review $@"
 exit 1

@@ -1,20 +1,24 @@
 import * as process from 'process'
-import * as cp from 'child_process'
+import {execFileSync, ExecFileSyncOptions} from 'child_process'
 import * as path from 'path'
 
 const defaultEnv = {
   ...process.env,
-  INPUT_ELM_REVIEW: 'elm-review'
+  INPUT_ELM_REVIEW: 'npx elm-review'
 }
 
 const elmPath = (...file: string[]): string => {
   return path.join('__tests__', 'elm', ...file)
 }
 
-const runAction = (options: cp.ExecSyncOptions): Buffer => {
+const runAction = (options: ExecFileSyncOptions): Buffer => {
   const ip = path.join(__dirname, '..', 'lib', 'main.js')
-  return cp.execSync(`node ${ip}`, options)
+  return execFileSync('node', [ip], options)
 }
+
+beforeAll(() => {
+  execFileSync('npx', ['tsc'])
+})
 
 test('runs quietly on success', () => {
   const env = {
@@ -45,15 +49,12 @@ test('configures elm-review path', () => {
   }
 
   let stdout = ''
-  let status = 0
   try {
     runAction({env})
   } catch (e) {
     stdout = e.stdout.toString()
-    status = e.status
   }
   expect(stdout).toBe('::error::elm-review --report=json\n')
-  expect(status).toBe(1)
 })
 
 test('configures review configuration', () => {
@@ -64,17 +65,14 @@ test('configures review configuration', () => {
   }
 
   let stdout = ''
-  let status = 0
   try {
     runAction({env})
   } catch (e) {
     stdout = e.stdout.toString()
-    status = e.status
   }
   expect(stdout).toBe(
     '::error::elm-review --report=json --config /path/to/review\n'
   )
-  expect(status).toBe(1)
 })
 
 test('configures elm compiler path', () => {
@@ -85,17 +83,14 @@ test('configures elm compiler path', () => {
   }
 
   let stdout = ''
-  let status = 0
   try {
     runAction({env})
   } catch (e) {
     stdout = e.stdout.toString()
-    status = e.status
   }
   expect(stdout).toBe(
     '::error::elm-review --report=json --compiler /path/to/elm\n'
   )
-  expect(status).toBe(1)
 })
 
 test('configures elm-format path', () => {
@@ -106,17 +101,14 @@ test('configures elm-format path', () => {
   }
 
   let stdout = ''
-  let status = 0
   try {
     runAction({env})
   } catch (e) {
     stdout = e.stdout.toString()
-    status = e.status
   }
   expect(stdout).toBe(
     '::error::elm-review --report=json --elm-format-path /path/to/elm-format\n'
   )
-  expect(status).toBe(1)
 })
 
 test('configures elm.json path', () => {
@@ -127,17 +119,14 @@ test('configures elm.json path', () => {
   }
 
   let stdout = ''
-  let status = 0
   try {
     runAction({env})
   } catch (e) {
     stdout = e.stdout.toString()
-    status = e.status
   }
   expect(stdout).toBe(
     '::error::elm-review --report=json --elmjson /path/to/elm.json\n'
   )
-  expect(status).toBe(1)
 })
 
 test('reports errors', () => {
@@ -159,6 +148,25 @@ test('reports errors', () => {
     '::error file=__tests__/elm/src/Bad.elm,line=3,col=22::Prefer listing what you wish to import and/or using qualified imports\n' +
       '::error file=__tests__/elm/src/Bad.elm,line=1,col=21::Module exposes everything implicitly "(..)"\n' +
       '::error::elm-review reported 2 errors\n'
+  )
+  expect(status).toBe(1)
+})
+
+test('handles cli errors', () => {
+  const env = {
+    ...defaultEnv
+  }
+
+  let stdout = ''
+  let status = 0
+  try {
+    runAction({env})
+  } catch (e) {
+    stdout = e.stdout.toString()
+    status = e.status
+  }
+  expect(stdout).toBe(
+    '::error file=elm.json::I was expecting to find an elm.json file in the current directory or one of its parents, but I did not find one.%250A%0AIf you wish to run elm-review from outside your project,%0Atry re-running it with --elmjson <path-to-elm.json>.\n'
   )
   expect(status).toBe(1)
 })
