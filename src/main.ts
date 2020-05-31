@@ -18,6 +18,9 @@ const {owner, repo} = github.context.repo
 const head_sha =
   github.context.payload.pull_request?.head?.sha || github.context.sha
 
+const checkName = core.getInput('name', {required: true})
+const checkTitle = 'Elm Review'
+
 const inputElmReview = core.getInput('elm_review', {required: true})
 const inputElmReviewConfig = core.getInput('elm_review_config')
 const inputElmCompiler = core.getInput('elm_compiler')
@@ -139,15 +142,6 @@ const reportErrors = (errors: ReviewErrors): OctokitAnnotation[] => {
   })
 }
 /* eslint-enable camelcase */
-
-const reportFailure = (reported: number): void => {
-  if (reported) {
-    core.setFailed(
-      `elm-review reported ${reported} ${reported === 1 ? 'error' : 'errors'}`
-    )
-  }
-}
-
 type CliError = {
   type: 'error'
   title: string
@@ -192,9 +186,6 @@ function reportCliError(error: Error | CliError | UnexpectedError): void {
   issueError(message, opts)
 }
 
-const checkName = 'elm-review'
-const checkTitle = 'Elm Review'
-
 /* eslint-disable camelcase */
 async function createCheckSuccess(): Promise<CreateCheckResponseType> {
   return octokit.checks.create({
@@ -204,17 +195,6 @@ async function createCheckSuccess(): Promise<CreateCheckResponseType> {
     head_sha,
     status: 'completed',
     conclusion: 'success'
-  })
-}
-
-async function createCheckFailure(): Promise<CreateCheckResponseType> {
-  return octokit.checks.create({
-    owner,
-    repo,
-    name: checkName,
-    head_sha,
-    status: 'completed',
-    conclusion: 'failure'
   })
 }
 
@@ -240,6 +220,7 @@ async function createCheckAnnotations(
   annotations: OctokitAnnotation[]
 ): Promise<void> {
   const chunkSize = 50
+  const annotationCount = annotations.length
   const firstAnnotations = annotations.slice(0, chunkSize)
 
   // Push first 50 annotations
@@ -252,7 +233,9 @@ async function createCheckAnnotations(
     conclusion: 'failure',
     output: {
       title: checkTitle,
-      summary: '',
+      summary: `Elm review found ${annotationCount} ${
+        annotationCount === 1 ? 'error' : 'errors'
+      }.`,
       annotations: firstAnnotations
     }
   })
@@ -274,7 +257,6 @@ async function run(): Promise<void> {
 
     if (annotations.length > 0) {
       await createCheckAnnotations(annotations)
-      reportFailure(annotations.length)
     } else {
       await createCheckSuccess()
     }
@@ -282,10 +264,8 @@ async function run(): Promise<void> {
     try {
       const error = JSON.parse(e.message)
       reportCliError(error)
-      await createCheckFailure()
     } catch (_) {
       reportCliError(e)
-      await createCheckFailure()
     }
   }
 }

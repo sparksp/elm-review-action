@@ -3003,6 +3003,8 @@ const octokit = new action_1.Octokit();
 const { owner, repo } = github.context.repo;
 // eslint-disable-next-line camelcase
 const head_sha = ((_b = (_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.head) === null || _b === void 0 ? void 0 : _b.sha) || github.context.sha;
+const checkName = core.getInput('name', { required: true });
+const checkTitle = 'Elm Review';
 const inputElmReview = core.getInput('elm_review', { required: true });
 const inputElmReviewConfig = core.getInput('elm_review_config');
 const inputElmCompiler = core.getInput('elm_compiler');
@@ -3073,12 +3075,6 @@ const reportErrors = (errors) => {
         });
     });
 };
-/* eslint-enable camelcase */
-const reportFailure = (reported) => {
-    if (reported) {
-        core.setFailed(`elm-review reported ${reported} ${reported === 1 ? 'error' : 'errors'}`);
-    }
-};
 function issueError(message, opts) {
     command_1.issueCommand('error', opts, message.trim().replace('\n', '%0A'));
     process.exitCode = core.ExitCode.Failure;
@@ -3097,8 +3093,6 @@ function reportCliError(error) {
     }
     issueError(message, opts);
 }
-const checkName = 'elm-review';
-const checkTitle = 'Elm Review';
 /* eslint-disable camelcase */
 async function createCheckSuccess() {
     return octokit.checks.create({
@@ -3108,16 +3102,6 @@ async function createCheckSuccess() {
         head_sha,
         status: 'completed',
         conclusion: 'success'
-    });
-}
-async function createCheckFailure() {
-    return octokit.checks.create({
-        owner,
-        repo,
-        name: checkName,
-        head_sha,
-        status: 'completed',
-        conclusion: 'failure'
     });
 }
 async function updateCheckAnnotations(check_run_id, annotations) {
@@ -3136,6 +3120,7 @@ async function updateCheckAnnotations(check_run_id, annotations) {
 }
 async function createCheckAnnotations(annotations) {
     const chunkSize = 50;
+    const annotationCount = annotations.length;
     const firstAnnotations = annotations.slice(0, chunkSize);
     // Push first 50 annotations
     const check = await octokit.checks.create({
@@ -3147,7 +3132,7 @@ async function createCheckAnnotations(annotations) {
         conclusion: 'failure',
         output: {
             title: checkTitle,
-            summary: '',
+            summary: `Elm review found ${annotationCount} ${annotationCount === 1 ? 'error' : 'errors'}.`,
             annotations: firstAnnotations
         }
     });
@@ -3163,7 +3148,6 @@ async function run() {
         const annotations = reportErrors(report);
         if (annotations.length > 0) {
             await createCheckAnnotations(annotations);
-            reportFailure(annotations.length);
         }
         else {
             await createCheckSuccess();
@@ -3173,11 +3157,9 @@ async function run() {
         try {
             const error = JSON.parse(e.message);
             reportCliError(error);
-            await createCheckFailure();
         }
         catch (_) {
             reportCliError(e);
-            await createCheckFailure();
         }
     }
 }
