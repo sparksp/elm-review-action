@@ -1680,27 +1680,27 @@ function reportCliError(error) {
     }
     issueError(message, opts);
 }
+const checkName = 'elm-review';
+const checkTitle = 'Elm Review';
 /* eslint-disable camelcase */
-async function createCheck() {
+async function createCheckSuccess() {
     return octokit.checks.create({
         owner: gitHubOwner,
         repo: gitHubRepo,
-        name: 'elm-review',
+        name: checkName,
         head_sha: gitHubSha,
-        status: 'in_progress',
-        output: {
-            title: 'Elm Review',
-            summary: ''
-        }
-    });
-}
-async function updateCheckSuccess(check_run_id) {
-    return octokit.checks.update({
-        owner: gitHubOwner,
-        repo: gitHubRepo,
-        check_run_id,
         status: 'completed',
         conclusion: 'success'
+    });
+}
+async function createCheckFailure() {
+    return octokit.checks.create({
+        owner: gitHubOwner,
+        repo: gitHubRepo,
+        name: checkName,
+        head_sha: gitHubSha,
+        status: 'completed',
+        conclusion: 'failure'
     });
 }
 async function updateCheckAnnotations(check_run_id, annotations) {
@@ -1711,41 +1711,57 @@ async function updateCheckAnnotations(check_run_id, annotations) {
         status: 'completed',
         conclusion: 'failure',
         output: {
-            title: 'Elm Review',
+            title: checkTitle,
             summary: '',
             annotations
         }
     });
 }
-async function updateCheckFailure(check_run_id, annotations) {
+async function createCheckAnnotations(annotations) {
     const chunkSize = 50;
-    for (let i = 0, len = annotations.length; i < len; i += chunkSize) {
-        await updateCheckAnnotations(check_run_id, annotations.slice(i, i + chunkSize));
+    const firstAnnotations = annotations.slice(0, chunkSize);
+    // Push first 50 annotations
+    const check = await octokit.checks.create({
+        owner: gitHubOwner,
+        repo: gitHubRepo,
+        name: checkName,
+        head_sha: gitHubSha,
+        status: 'completed',
+        conclusion: 'failure',
+        output: {
+            title: checkTitle,
+            summary: '',
+            annotations: firstAnnotations
+        }
+    });
+    core.debug(`check: ${check.toString()}`);
+    // Push remaining annotations, 50 at a time
+    for (let i = chunkSize, len = annotations.length; i < len; i += chunkSize) {
+        await updateCheckAnnotations(check.data.id, annotations.slice(i, i + chunkSize));
     }
 }
 /* eslint-enable camelcase */
 async function run() {
-    const check = await createCheck();
     try {
         const report = await runElmReview();
         const annotations = reportErrors(report);
         if (annotations.length > 0) {
-            await updateCheckFailure(check.data.id, annotations);
+            await createCheckAnnotations(annotations);
             reportFailure(annotations.length);
         }
         else {
-            await updateCheckSuccess(check.data.id);
+            await createCheckSuccess();
         }
     }
     catch (e) {
         try {
             const error = JSON.parse(e.message);
             reportCliError(error);
-            await updateCheckFailure(check.data.id, []);
+            await createCheckFailure();
         }
         catch (_) {
             reportCliError(e);
-            await updateCheckFailure(check.data.id, []);
+            await createCheckFailure();
         }
     }
 }

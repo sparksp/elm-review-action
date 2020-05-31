@@ -191,30 +191,29 @@ function reportCliError(error: Error | CliError | UnexpectedError): void {
   issueError(message, opts)
 }
 
+const checkName = 'elm-review'
+const checkTitle = 'Elm Review'
+
 /* eslint-disable camelcase */
-async function createCheck(): Promise<CreateCheckResponseType> {
+async function createCheckSuccess(): Promise<CreateCheckResponseType> {
   return octokit.checks.create({
     owner: gitHubOwner,
     repo: gitHubRepo,
-    name: 'elm-review',
+    name: checkName,
     head_sha: gitHubSha,
-    status: 'in_progress',
-    output: {
-      title: 'Elm Review',
-      summary: ''
-    }
+    status: 'completed',
+    conclusion: 'success'
   })
 }
 
-async function updateCheckSuccess(
-  check_run_id: number
-): Promise<UpdateCheckResponseType> {
-  return octokit.checks.update({
+async function createCheckFailure(): Promise<CreateCheckResponseType> {
+  return octokit.checks.create({
     owner: gitHubOwner,
     repo: gitHubRepo,
-    check_run_id,
+    name: checkName,
+    head_sha: gitHubSha,
     status: 'completed',
-    conclusion: 'success'
+    conclusion: 'failure'
   })
 }
 
@@ -229,21 +228,40 @@ async function updateCheckAnnotations(
     status: 'completed',
     conclusion: 'failure',
     output: {
-      title: 'Elm Review',
+      title: checkTitle,
       summary: '',
       annotations
     }
   })
 }
 
-async function updateCheckFailure(
-  check_run_id: number,
+async function createCheckAnnotations(
   annotations: OctokitAnnotation[]
 ): Promise<void> {
   const chunkSize = 50
-  for (let i = 0, len = annotations.length; i < len; i += chunkSize) {
+  const firstAnnotations = annotations.slice(0, chunkSize)
+
+  // Push first 50 annotations
+  const check = await octokit.checks.create({
+    owner: gitHubOwner,
+    repo: gitHubRepo,
+    name: checkName,
+    head_sha: gitHubSha,
+    status: 'completed',
+    conclusion: 'failure',
+    output: {
+      title: checkTitle,
+      summary: '',
+      annotations: firstAnnotations
+    }
+  })
+
+  core.debug(`check: ${check.toString()}`)
+
+  // Push remaining annotations, 50 at a time
+  for (let i = chunkSize, len = annotations.length; i < len; i += chunkSize) {
     await updateCheckAnnotations(
-      check_run_id,
+      check.data.id,
       annotations.slice(i, i + chunkSize)
     )
   }
@@ -251,26 +269,24 @@ async function updateCheckFailure(
 /* eslint-enable camelcase */
 
 async function run(): Promise<void> {
-  const check = await createCheck()
-
   try {
     const report = await runElmReview()
     const annotations = reportErrors(report)
 
     if (annotations.length > 0) {
-      await updateCheckFailure(check.data.id, annotations)
+      await createCheckAnnotations(annotations)
       reportFailure(annotations.length)
     } else {
-      await updateCheckSuccess(check.data.id)
+      await createCheckSuccess()
     }
   } catch (e) {
     try {
       const error = JSON.parse(e.message)
       reportCliError(error)
-      await updateCheckFailure(check.data.id, [])
+      await createCheckFailure()
     } catch (_) {
       reportCliError(e)
-      await updateCheckFailure(check.data.id, [])
+      await createCheckFailure()
     }
   }
 }
