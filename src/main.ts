@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
+import * as github from '@actions/github'
 import {issueCommand} from '@actions/core/lib/command'
 import {Octokit} from '@octokit/action'
 import {GetResponseTypeFromEndpointMethod} from '@octokit/types'
@@ -12,10 +13,10 @@ type UpdateCheckResponseType = GetResponseTypeFromEndpointMethod<
 >
 
 const octokit = new Octokit()
-const [gitHubOwner, gitHubRepo]: string[] = (
-  process.env.GITHUB_REPOSITORY || ''
-).split('/')
-const gitHubSha: string = process.env.GITHUB_SHA || ''
+const {owner, repo} = github.context.repo
+// eslint-disable-next-line camelcase
+const head_sha =
+  github.context.payload.pull_request?.head?.sha || github.context.sha
 
 const inputElmReview = core.getInput('elm_review', {required: true})
 const inputElmReviewConfig = core.getInput('elm_review_config')
@@ -131,7 +132,7 @@ const reportErrors = (errors: ReviewErrors): OctokitAnnotation[] => {
           end_line: message.region.end.line,
           end_column: message.region.end.column,
           title: message.message,
-          message: message.details.join('\n')
+          message: message.details.join('\n\n')
         }
       }
     )
@@ -197,10 +198,10 @@ const checkTitle = 'Elm Review'
 /* eslint-disable camelcase */
 async function createCheckSuccess(): Promise<CreateCheckResponseType> {
   return octokit.checks.create({
-    owner: gitHubOwner,
-    repo: gitHubRepo,
+    owner,
+    repo,
     name: checkName,
-    head_sha: gitHubSha,
+    head_sha,
     status: 'completed',
     conclusion: 'success'
   })
@@ -208,10 +209,10 @@ async function createCheckSuccess(): Promise<CreateCheckResponseType> {
 
 async function createCheckFailure(): Promise<CreateCheckResponseType> {
   return octokit.checks.create({
-    owner: gitHubOwner,
-    repo: gitHubRepo,
+    owner,
+    repo,
     name: checkName,
-    head_sha: gitHubSha,
+    head_sha,
     status: 'completed',
     conclusion: 'failure'
   })
@@ -222,8 +223,8 @@ async function updateCheckAnnotations(
   annotations: OctokitAnnotation[]
 ): Promise<UpdateCheckResponseType> {
   return octokit.checks.update({
-    owner: gitHubOwner,
-    repo: gitHubRepo,
+    owner,
+    repo,
     check_run_id,
     status: 'completed',
     conclusion: 'failure',
@@ -243,10 +244,10 @@ async function createCheckAnnotations(
 
   // Push first 50 annotations
   const check = await octokit.checks.create({
-    owner: gitHubOwner,
-    repo: gitHubRepo,
+    owner,
+    repo,
     name: checkName,
-    head_sha: gitHubSha,
+    head_sha,
     status: 'completed',
     conclusion: 'failure',
     output: {
@@ -255,8 +256,6 @@ async function createCheckAnnotations(
       annotations: firstAnnotations
     }
   })
-
-  core.debug(`check: ${check.toString()}`)
 
   // Push remaining annotations, 50 at a time
   for (let i = chunkSize, len = annotations.length; i < len; i += chunkSize) {
