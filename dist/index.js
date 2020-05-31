@@ -3101,10 +3101,14 @@ async function createCheckSuccess() {
         name: checkName,
         head_sha,
         status: 'completed',
-        conclusion: 'success'
+        conclusion: 'success',
+        output: {
+            title: checkTitle,
+            summary: 'I found no problems while reviewing!'
+        }
     });
 }
-async function updateCheckAnnotations(check_run_id, annotations) {
+async function updateCheckAnnotations(check_run_id, annotations, summary) {
     return octokit.checks.update({
         owner,
         repo,
@@ -3113,7 +3117,7 @@ async function updateCheckAnnotations(check_run_id, annotations) {
         conclusion: 'failure',
         output: {
             title: checkTitle,
-            summary: '',
+            summary,
             annotations
         }
     });
@@ -3122,6 +3126,7 @@ async function createCheckAnnotations(annotations) {
     const chunkSize = 50;
     const annotationCount = annotations.length;
     const firstAnnotations = annotations.slice(0, chunkSize);
+    const summary = `I found ${annotationCount} ${annotationCount === 1 ? 'problem' : 'problems'} while reviewing!`;
     // Push first 50 annotations
     const check = await octokit.checks.create({
         owner,
@@ -3132,13 +3137,13 @@ async function createCheckAnnotations(annotations) {
         conclusion: 'failure',
         output: {
             title: checkTitle,
-            summary: `Elm review found ${annotationCount} ${annotationCount === 1 ? 'error' : 'errors'}.`,
+            summary,
             annotations: firstAnnotations
         }
     });
     // Push remaining annotations, 50 at a time
     for (let i = chunkSize, len = annotations.length; i < len; i += chunkSize) {
-        await updateCheckAnnotations(check.data.id, annotations.slice(i, i + chunkSize));
+        await updateCheckAnnotations(check.data.id, annotations.slice(i, i + chunkSize), summary);
     }
 }
 /* eslint-enable camelcase */
