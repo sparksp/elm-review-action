@@ -1711,6 +1711,7 @@ async function updateCheckAnnotations(check_run_id, annotations) {
         status: 'completed',
         conclusion: 'failure',
         output: {
+            title: 'Elm Review',
             summary: '',
             annotations
         }

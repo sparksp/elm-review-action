@@ -229,6 +229,7 @@ async function updateCheckAnnotations(
     status: 'completed',
     conclusion: 'failure',
     output: {
+      title: 'Elm Review',
       summary: '',
       annotations
     }
