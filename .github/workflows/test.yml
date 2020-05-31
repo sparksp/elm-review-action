@@ -26,6 +26,8 @@ jobs:
         # elm_review: elm-review
         elm_json: __tests__/elm/elm.json
         elm_files: __tests__/elm/src/Good.elm
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   test-failure: # make sure the action works on a clean machine without building
     runs-on: ubuntu-latest
@@ -39,4 +41,6 @@ jobs:
         # elm_review: elm-review
         elm_json: __tests__/elm/elm.json
         # elm_files:
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true

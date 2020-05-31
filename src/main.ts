@@ -1,6 +1,21 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import {issueCommand} from '@actions/core/lib/command'
+import {Octokit} from '@octokit/action'
+import {GetResponseTypeFromEndpointMethod} from '@octokit/types'
+
+type CreateCheckResponseType = GetResponseTypeFromEndpointMethod<
+  typeof octokit.checks.create
+>
+type UpdateCheckResponseType = GetResponseTypeFromEndpointMethod<
+  typeof octokit.checks.update
+>
+
+const octokit = new Octokit()
+const [gitHubOwner, gitHubRepo]: string[] = (
+  process.env.GITHUB_REPOSITORY || ''
+).split('/')
+const gitHubSha: string = process.env.GITHUB_SHA || ''
 
 const inputElmReview = core.getInput('elm_review', {required: true})
 const inputElmReviewConfig = core.getInput('elm_review_config')
@@ -91,21 +106,38 @@ type Location = {
   column: number
 }
 
-const reportErrors = (errors: ReviewErrors): number => {
-  let reported = 0
-  for (const error of errors.errors) {
-    for (const message of error.errors) {
-      issueError(message.message, {
-        file: error.path,
-        line: message.region.start.line,
-        col: message.region.start.column
-      })
-
-      reported++
-    }
-  }
-  return reported
+/* eslint-disable camelcase */
+type OctokitAnnotation = {
+  path: string
+  start_line: number
+  start_column?: number
+  end_line: number
+  end_column?: number
+  annotation_level: 'notice' | 'warning' | 'failure'
+  message: string
+  title?: string
+  raw_details?: string
 }
+
+const reportErrors = (errors: ReviewErrors): OctokitAnnotation[] => {
+  return errors.errors.flatMap((error: ReviewError) => {
+    return error.errors.map(
+      (message: ReviewMessage): OctokitAnnotation => {
+        return {
+          path: error.path,
+          annotation_level: 'failure',
+          start_line: message.region.start.line,
+          start_column: message.region.start.column,
+          end_line: message.region.end.line,
+          end_column: message.region.end.column,
+          title: message.message,
+          message: message.details.join('\n')
+        }
+      }
+    )
+  })
+}
+/* eslint-enable camelcase */
 
 const reportFailure = (reported: number): void => {
   if (reported) {
@@ -159,16 +191,85 @@ function reportCliError(error: Error | CliError | UnexpectedError): void {
   issueError(message, opts)
 }
 
+/* eslint-disable camelcase */
+async function createCheck(): Promise<CreateCheckResponseType> {
+  return octokit.checks.create({
+    owner: gitHubOwner,
+    repo: gitHubRepo,
+    name: 'elm-review',
+    head_sha: gitHubSha,
+    status: 'in_progress',
+    output: {
+      title: 'Elm Review',
+      summary: ''
+    }
+  })
+}
+
+async function updateCheckSuccess(
+  check_run_id: number
+): Promise<UpdateCheckResponseType> {
+  return octokit.checks.update({
+    owner: gitHubOwner,
+    repo: gitHubRepo,
+    check_run_id,
+    status: 'completed',
+    conclusion: 'success'
+  })
+}
+
+async function updateCheckAnnotations(
+  check_run_id: number,
+  annotations: OctokitAnnotation[]
+): Promise<UpdateCheckResponseType> {
+  return octokit.checks.update({
+    owner: gitHubOwner,
+    repo: gitHubRepo,
+    check_run_id,
+    status: 'completed',
+    conclusion: 'failure',
+    output: {
+      summary: '',
+      annotations
+    }
+  })
+}
+
+async function updateCheckFailure(
+  check_run_id: number,
+  annotations: OctokitAnnotation[]
+): Promise<void> {
+  const chunkSize = 50
+  for (let i = 0, len = annotations.length; i < len; i += chunkSize) {
+    await updateCheckAnnotations(
+      check_run_id,
+      annotations.slice(i, i + chunkSize)
+    )
+  }
+}
+/* eslint-enable camelcase */
+
 async function run(): Promise<void> {
+  const check = await createCheck()
+
   try {
     const report = await runElmReview()
-    reportFailure(reportErrors(report))
+    const annotations = reportErrors(report)
+
+    if (annotations.length > 0) {
+      await updateCheckFailure(check.data.id, annotations)
+      reportFailure(annotations.length)
+    } else {
+      await updateCheckSuccess(check.data.id)
+    }
   } catch (e) {
     try {
       const error = JSON.parse(e.message)
       reportCliError(error)
+      await updateCheckFailure(check.data.id, [])
     } catch (_) {
       reportCliError(e)
+      await updateCheckFailure(check.data.id, [])
     }
   }
 }
