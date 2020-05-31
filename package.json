@@ -10,7 +10,7 @@
     "lint": "eslint src/**/*.ts",
     "pack": "ncc build",
     "test": "jest",
-    "all": "run-s build format lint pack test ;"
+    "all": "run-s build format lint pack ;"
   },
   "homepage": "https://github.com/sparksp/elm-review-action#readme",
   "bugs": {
