@@ -21,7 +21,8 @@ jobs:
     - run: yarn --frozen-lockfile
     - name: Add elm-review, elm and elm-format to path
       run: echo ::add-path::$(yarn bin)
-    - uses: ./
+    - name: Run elm-review (should-pass)
+      uses: ./
       with:
         name: elm-review (should-pass)
         # elm_review: elm-review
@@ -29,7 +30,8 @@ jobs:
         elm_files: __tests__/elm/src/Good.elm
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - uses: ./
+    - name: Run elm-review (should-fail)
+      uses: ./
       with:
         name: elm-review (should-fail)
         # elm_review: elm-review
