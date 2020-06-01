@@ -134,7 +134,7 @@ const reportErrors = (errors: ReviewErrors): OctokitAnnotation[] => {
           start_column: message.region.start.column,
           end_line: message.region.end.line,
           end_column: message.region.end.column,
-          title: message.message,
+          title: `${message.rule}: ${message.message}`,
           message: message.details.join('\n\n')
         }
       }
