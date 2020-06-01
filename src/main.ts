@@ -144,6 +144,7 @@ const reportErrors = (errors: ReviewErrors): OctokitAnnotation[] => {
   })
 }
 /* eslint-enable camelcase */
+
 type CliError = {
   type: 'error'
   title: string
