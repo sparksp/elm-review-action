@@ -35,6 +35,8 @@ jobs:
     - name: Add elm-review, elm and elm-format to path
       run: echo ::add-path::$(yarn bin)
     - uses: sparksp/elm-review-action@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         # elm_review: elm-review
         # elm_format: elm-format
@@ -50,6 +52,8 @@ This snippet shows an example of what the option defaults are like, however ther
 
 ```yaml
     - uses: sparksp/elm-review-action@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         # name: elm-review
         # elm_review: elm-review
