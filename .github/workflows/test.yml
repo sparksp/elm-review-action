@@ -21,22 +21,19 @@ jobs:
     - run: yarn --frozen-lockfile
     - name: Add elm-review, elm and elm-format to path
       run: echo ::add-path::$(yarn bin)
-    - uses: ./
+    - name: Run elm-review
+      uses: ./
       with:
         # elm_review: elm-review
         elm_json: __tests__/elm/elm.json
         elm_files: __tests__/elm/src/Good.elm
-
-  test-failure: # make sure the action works on a clean machine without building
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - run: yarn --frozen-lockfile
-    - name: Add elm-review, elm and elm-format to path
-      run: echo ::add-path::$(yarn bin)
-    - uses: ./
-      with:
-        # elm_review: elm-review
-        elm_json: __tests__/elm/elm.json
-        # elm_files:
-      continue-on-error: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # - name: Run elm-review (should-fail)
+    #   uses: ./
+    #   with:
+    #     name: elm-review (should-fail)
+    #     # elm_review: elm-review
+    #     elm_json: __tests__/elm/elm.json
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

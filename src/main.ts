@@ -1,6 +1,27 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
+import * as github from '@actions/github'
 import {issueCommand} from '@actions/core/lib/command'
+import {Octokit} from '@octokit/action'
+import {GetResponseTypeFromEndpointMethod} from '@octokit/types'
+import {wrap} from './wrap'
+
+type CreateCheckResponseType = GetResponseTypeFromEndpointMethod<
+  typeof octokit.checks.create
+>
+type UpdateCheckResponseType = GetResponseTypeFromEndpointMethod<
+  typeof octokit.checks.update
+>
+
+const octokit = new Octokit()
+const {owner, repo} = github.context.repo
+// eslint-disable-next-line camelcase
+const head_sha =
+  github.context.payload.pull_request?.head?.sha || github.context.sha
+
+const checkName = core.getInput('name', {required: true})
+const checkTitle = 'Elm Review'
+const checkMessageWrap = 80
 
 const inputElmReview = core.getInput('elm_review', {required: true})
 const inputElmReviewConfig = core.getInput('elm_review_config')
@@ -91,30 +112,38 @@ type Location = {
   column: number
 }
 
-const reportErrors = (errors: ReviewErrors): number => {
-  let reported = 0
-  for (const error of errors.errors) {
-    for (const message of error.errors) {
-      issueError(message.message, {
-        file: error.path,
-        line: message.region.start.line,
-        col: message.region.start.column
-      })
-
-      reported++
-    }
-  }
-  return reported
+/* eslint-disable camelcase */
+type OctokitAnnotation = {
+  path: string
+  start_line: number
+  start_column?: number
+  end_line: number
+  end_column?: number
+  annotation_level: 'notice' | 'warning' | 'failure'
+  message: string
+  title?: string
+  raw_details?: string
 }
 
-const reportFailure = (reported: number): void => {
-  if (reported) {
-    core.setFailed(
-      `elm-review reported ${reported} ${reported === 1 ? 'error' : 'errors'}`
+const reportErrors = (errors: ReviewErrors): OctokitAnnotation[] => {
+  return errors.errors.flatMap((error: ReviewError) => {
+    return error.errors.map(
+      (message: ReviewMessage): OctokitAnnotation => {
+        return {
+          path: error.path,
+          annotation_level: 'failure',
+          start_line: message.region.start.line,
+          start_column: message.region.start.column,
+          end_line: message.region.end.line,
+          end_column: message.region.end.column,
+          title: `${message.rule}: ${message.message}`,
+          message: wrap(checkMessageWrap, message.details.join('\n\n'))
+        }
+      }
     )
-  }
+  })
 }
-
+/* eslint-enable camelcase */
 type CliError = {
   type: 'error'
   title: string
@@ -159,10 +188,87 @@ function reportCliError(error: Error | CliError | UnexpectedError): void {
   issueError(message, opts)
 }
 
+/* eslint-disable camelcase */
+async function createCheckSuccess(): Promise<CreateCheckResponseType> {
+  return octokit.checks.create({
+    owner,
+    repo,
+    name: checkName,
+    head_sha,
+    status: 'completed',
+    conclusion: 'success',
+    output: {
+      title: checkTitle,
+      summary: 'I found no problems while reviewing!'
+    }
+  })
+}
+
+async function updateCheckAnnotations(
+  check_run_id: number,
+  annotations: OctokitAnnotation[],
+  summary: string
+): Promise<UpdateCheckResponseType> {
+  return octokit.checks.update({
+    owner,
+    repo,
+    check_run_id,
+    status: 'completed',
+    conclusion: 'failure',
+    output: {
+      title: checkTitle,
+      summary,
+      annotations
+    }
+  })
+}
+
+async function createCheckAnnotations(
+  annotations: OctokitAnnotation[]
+): Promise<void> {
+  const chunkSize = 50
+  const annotationCount = annotations.length
+  const firstAnnotations = annotations.slice(0, chunkSize)
+  const summary = `I found ${annotationCount} ${
+    annotationCount === 1 ? 'problem' : 'problems'
+  } while reviewing!`
+
+  // Push first 50 annotations
+  const check = await octokit.checks.create({
+    owner,
+    repo,
+    name: checkName,
+    head_sha,
+    status: 'completed',
+    conclusion: 'failure',
+    output: {
+      title: checkTitle,
+      summary,
+      annotations: firstAnnotations
+    }
+  })
+
+  // Push remaining annotations, 50 at a time
+  for (let i = chunkSize, len = annotations.length; i < len; i += chunkSize) {
+    await updateCheckAnnotations(
+      check.data.id,
+      annotations.slice(i, i + chunkSize),
+      summary
+    )
+  }
+}
+/* eslint-enable camelcase */
+
 async function run(): Promise<void> {
   try {
     const report = await runElmReview()
-    reportFailure(reportErrors(report))
+    const annotations = reportErrors(report)
+
+    if (annotations.length > 0) {
+      await createCheckAnnotations(annotations)
+    } else {
+      await createCheckSuccess()
+    }
   } catch (e) {
     try {
       const error = JSON.parse(e.message)

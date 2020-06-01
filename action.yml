@@ -5,8 +5,12 @@ branding:
   icon: check-circle
   color: orange
 inputs:
+  name:
+    description: 'This action creates its own entry in the checks, you can change the name with this input.'
+    required: true
+    default: 'elm-review'
   elm_review:
-    description: 'Your elm-review command'
+    description: 'Specify the path to elm-review.'
     required: true
     default: 'elm-review'
   elm_review_config:
