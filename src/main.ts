@@ -4,6 +4,7 @@ import * as github from '@actions/github'
 import {issueCommand} from '@actions/core/lib/command'
 import {Octokit} from '@octokit/action'
 import {GetResponseTypeFromEndpointMethod} from '@octokit/types'
+import {wrap} from './wrap'
 
 type CreateCheckResponseType = GetResponseTypeFromEndpointMethod<
   typeof octokit.checks.create
@@ -20,6 +21,7 @@ const head_sha =
 
 const checkName = core.getInput('name', {required: true})
 const checkTitle = 'Elm Review'
+const checkMessageWrap = 80
 
 const inputElmReview = core.getInput('elm_review', {required: true})
 const inputElmReviewConfig = core.getInput('elm_review_config')
@@ -135,7 +137,7 @@ const reportErrors = (errors: ReviewErrors): OctokitAnnotation[] => {
           end_line: message.region.end.line,
           end_column: message.region.end.column,
           title: `${message.rule}: ${message.message}`,
-          message: message.details.join('\n\n')
+          message: wrap(checkMessageWrap, message.details.join('\n\n'))
         }
       }
     )

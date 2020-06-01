@@ -2999,12 +2999,14 @@ const exec = __importStar(__webpack_require__(986));
 const github = __importStar(__webpack_require__(469));
 const command_1 = __webpack_require__(431);
 const action_1 = __webpack_require__(725);
+const wrap_1 = __webpack_require__(738);
 const octokit = new action_1.Octokit();
 const { owner, repo } = github.context.repo;
 // eslint-disable-next-line camelcase
 const head_sha = ((_b = (_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.head) === null || _b === void 0 ? void 0 : _b.sha) || github.context.sha;
 const checkName = core.getInput('name', { required: true });
 const checkTitle = 'Elm Review';
+const checkMessageWrap = 80;
 const inputElmReview = core.getInput('elm_review', { required: true });
 const inputElmReviewConfig = core.getInput('elm_review_config');
 const inputElmCompiler = core.getInput('elm_compiler');
@@ -3070,7 +3072,7 @@ const reportErrors = (errors) => {
                 end_line: message.region.end.line,
                 end_column: message.region.end.column,
                 title: `${message.rule}: ${message.message}`,
-                message: message.details.join('\n\n')
+                message: wrap_1.wrap(checkMessageWrap, message.details.join('\n\n'))
             };
         });
     });
@@ -23564,6 +23566,44 @@ const Octokit = core.Octokit.plugin(pluginPaginateRest.paginateRest, pluginRestE
 
 exports.Octokit = Octokit;
 //# sourceMappingURL=index.js.map
+
+
+/***/ }),
+
+/***/ 738:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.wrap = void 0;
+function wrap(length, text) {
+    return text
+        .split('\n\n')
+        .map(paragraph => {
+        const words = paragraph.replace('\n', ' ').split(' ');
+        return wrapper(length, words, '');
+    })
+        .join('\n\n');
+}
+exports.wrap = wrap;
+function wrapper(length, words, line) {
+    if (words.length === 0) {
+        return line;
+    }
+    else {
+        const [nextWord, ...remainingWords] = words;
+        if (line.length + nextWord.length + 1 > length) {
+            return `${line}\n${wrapper(length, remainingWords, nextWord)}`;
+        }
+        else if (line.length === 0) {
+            return wrapper(length, remainingWords, nextWord);
+        }
+        else {
+            return wrapper(length, remainingWords, `${line} ${nextWord}`);
+        }
+    }
+}
 
 
 /***/ }),
