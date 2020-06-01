@@ -69,7 +69,7 @@ This snippet shows an example of what the option defaults are like, however ther
 
 ### name
 
-This action creates its own entry in the checks called "elm-review", you can change the check name shown with this input.
+This action creates its own entry in the checks called "Elm Review", you can change the check name shown with this input.
 
 
 ### elm_review

@@ -20,7 +20,6 @@ const head_sha =
   github.context.payload.pull_request?.head?.sha || github.context.sha
 
 const checkName = core.getInput('name', {required: true})
-const checkTitle = 'Elm Review'
 const checkMessageWrap = 80
 
 const inputElmReview = core.getInput('elm_review', {required: true})
@@ -199,7 +198,7 @@ async function createCheckSuccess(): Promise<CreateCheckResponseType> {
     status: 'completed',
     conclusion: 'success',
     output: {
-      title: checkTitle,
+      title: 'No problems to report',
       summary: 'I found no problems while reviewing!'
     }
   })
@@ -208,6 +207,7 @@ async function createCheckSuccess(): Promise<CreateCheckResponseType> {
 async function updateCheckAnnotations(
   check_run_id: number,
   annotations: OctokitAnnotation[],
+  title: string,
   summary: string
 ): Promise<UpdateCheckResponseType> {
   return octokit.checks.update({
@@ -217,7 +217,7 @@ async function updateCheckAnnotations(
     status: 'completed',
     conclusion: 'failure',
     output: {
-      title: checkTitle,
+      title,
       summary,
       annotations
     }
@@ -230,9 +230,12 @@ async function createCheckAnnotations(
   const chunkSize = 50
   const annotationCount = annotations.length
   const firstAnnotations = annotations.slice(0, chunkSize)
+  const title = `${annotationCount} ${
+    annotationCount === 1 ? 'problem' : 'problems'
+  } found`
   const summary = `I found ${annotationCount} ${
     annotationCount === 1 ? 'problem' : 'problems'
-  } while reviewing!`
+  } while reviewing your project.`
 
   // Push first 50 annotations
   const check = await octokit.checks.create({
@@ -243,7 +246,7 @@ async function createCheckAnnotations(
     status: 'completed',
     conclusion: 'failure',
     output: {
-      title: checkTitle,
+      title,
       summary,
       annotations: firstAnnotations
     }
@@ -254,6 +257,7 @@ async function createCheckAnnotations(
     await updateCheckAnnotations(
       check.data.id,
       annotations.slice(i, i + chunkSize),
+      title,
       summary
     )
   }

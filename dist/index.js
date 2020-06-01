@@ -3005,7 +3005,6 @@ const { owner, repo } = github.context.repo;
 // eslint-disable-next-line camelcase
 const head_sha = ((_b = (_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.head) === null || _b === void 0 ? void 0 : _b.sha) || github.context.sha;
 const checkName = core.getInput('name', { required: true });
-const checkTitle = 'Elm Review';
 const checkMessageWrap = 80;
 const inputElmReview = core.getInput('elm_review', { required: true });
 const inputElmReviewConfig = core.getInput('elm_review_config');
@@ -3105,12 +3104,12 @@ async function createCheckSuccess() {
         status: 'completed',
         conclusion: 'success',
         output: {
-            title: checkTitle,
+            title: 'No problems to report',
             summary: 'I found no problems while reviewing!'
         }
     });
 }
-async function updateCheckAnnotations(check_run_id, annotations, summary) {
+async function updateCheckAnnotations(check_run_id, annotations, title, summary) {
     return octokit.checks.update({
         owner,
         repo,
@@ -3118,7 +3117,7 @@ async function updateCheckAnnotations(check_run_id, annotations, summary) {
         status: 'completed',
         conclusion: 'failure',
         output: {
-            title: checkTitle,
+            title,
             summary,
             annotations
         }
@@ -3128,7 +3127,8 @@ async function createCheckAnnotations(annotations) {
     const chunkSize = 50;
     const annotationCount = annotations.length;
     const firstAnnotations = annotations.slice(0, chunkSize);
-    const summary = `I found ${annotationCount} ${annotationCount === 1 ? 'problem' : 'problems'} while reviewing!`;
+    const title = `${annotationCount} ${annotationCount === 1 ? 'problem' : 'problems'} found`;
+    const summary = `I found ${annotationCount} ${annotationCount === 1 ? 'problem' : 'problems'} while reviewing your project.`;
     // Push first 50 annotations
     const check = await octokit.checks.create({
         owner,
@@ -3138,14 +3138,14 @@ async function createCheckAnnotations(annotations) {
         status: 'completed',
         conclusion: 'failure',
         output: {
-            title: checkTitle,
+            title,
             summary,
             annotations: firstAnnotations
         }
     });
     // Push remaining annotations, 50 at a time
     for (let i = chunkSize, len = annotations.length; i < len; i += chunkSize) {
-        await updateCheckAnnotations(check.data.id, annotations.slice(i, i + chunkSize), summary);
+        await updateCheckAnnotations(check.data.id, annotations.slice(i, i + chunkSize), title, summary);
     }
 }
 /* eslint-enable camelcase */
