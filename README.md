@@ -10,10 +10,14 @@ Check the quality of your [Elm] code using [elm-review] in a GitHub workflow - a
 
 ## Check Summary
 
+This view shows in your pull request checks or repository actions. You can see a [working example of some failed checks](https://github.com/sparksp/elm-review-action/runs/727935056?check_suite_focus=true).
+
 ![check-summary](docs/check-summary.png)
 
 
 ## Annotations
+
+This is the view of "files changed" in a pull request with the elm-review annotations shown inline. Errors can show up in files even if you didn't change them in the pull request, as they could be a side effect of your changes.
 
 ![annotations](docs/annotations.png)
 
