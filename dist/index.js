@@ -23579,12 +23579,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.wrap = void 0;
 function wrap(length, text) {
     return text
-        .split('\n\n')
+        .split('\n')
         .map(paragraph => {
-        const words = paragraph.replace('\n', ' ').split(' ');
+        const words = paragraph.split(' ');
         return wrapper(length, words, '');
     })
-        .join('\n\n');
+        .join('\n');
 }
 exports.wrap = wrap;
 function wrapper(length, words, line) {
