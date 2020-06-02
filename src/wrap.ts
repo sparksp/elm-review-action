@@ -1,11 +1,11 @@
 export function wrap(length: number, text: string): string {
   return text
-    .split('\n\n')
+    .split('\n')
     .map(paragraph => {
-      const words = paragraph.replace('\n', ' ').split(' ')
+      const words = paragraph.split(' ')
       return wrapper(length, words, '')
     })
-    .join('\n\n')
+    .join('\n')
 }
 
 function wrapper(length: number, words: string[], line: string): string {
