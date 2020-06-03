@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: ${{ github.head_ref }}
     - run: yarn --frozen-lockfile
     - name: Build elm-review
       run: |
@@ -35,11 +37,25 @@ jobs:
         fix_all: 'true'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    # - name: Run elm-review (should-fail)
-    #   uses: ./
-    #   with:
-    #     name: elm-review (should-fail)
-    #     # elm_review: elm-review
-    #     elm_json: __tests__/elm/elm.json
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Checkout new fixes branch
+      if: ${{ github.event_name == 'pull_request' }}
+      run: git checkout -b fixes/${{ github.head_ref }}
+    - uses: stefanzweifel/git-auto-commit-action@v4
+      if: ${{ github.event_name == 'pull_request' }}
+      id: docs-commit
+      with:
+        branch: fixes/${{ github.head_ref }}
+        commit_message: Apply Elm Review Fixes
+        push_options: --force
+      env:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+    - uses: repo-sync/pull-request@v2
+      if: ${{ steps.docs-commit.outputs.changes_detected == 'true' }}
+      with:
+        source_branch: fixes/${{ github.head_ref }}
+        destination_branch: ${{ github.head_ref }}
+        pr_title: "Elm Review Fixes"
+        pr_body: "*This is an automated pull request with fixes from your elm-review rules.*"
+        pr_reviewer: sparksp
+        pr_assignee: sparksp
+        github_token: ${{ secrets.GITHUB_TOKEN }}
