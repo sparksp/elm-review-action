@@ -19,6 +19,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: yarn --frozen-lockfile
+    - name: Build elm-review
+      run: |
+        npm ci
+        npm run build
+      working-directory: ./node_modules/elm-review
     - name: Add elm-review, elm and elm-format to path
       run: echo ::add-path::$(yarn bin)
     - name: Run elm-review
