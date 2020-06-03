@@ -3012,12 +3012,19 @@ const inputElmCompiler = core.getInput('elm_compiler');
 const inputElmFormat = core.getInput('elm_format');
 const inputElmJson = core.getInput('elm_json');
 const inputElmFiles = core.getInput('elm_files');
+const inputFixAll = core.getInput('fix_all', { required: true });
 const elmReviewArgs = () => {
-    const arg = (flag, value) => {
+    const arg = (flag_, value) => {
         if (value === '') {
             return [];
         }
-        return [flag, value];
+        return [flag_, value];
+    };
+    const flag = (flag_, value) => {
+        if (value !== 'true') {
+            return [];
+        }
+        return [flag_];
     };
     const globFiles = (pattern) => {
         if (pattern === '') {
@@ -3031,7 +3038,8 @@ const elmReviewArgs = () => {
         ...arg('--config', inputElmReviewConfig),
         ...arg('--compiler', inputElmCompiler),
         ...arg('--elm-format-path', inputElmFormat),
-        ...arg('--elmjson', inputElmJson)
+        ...arg('--elmjson', inputElmJson),
+        ...flag('--fix-all-without-prompt', inputFixAll)
     ];
 };
 const runElmReview = async () => {
