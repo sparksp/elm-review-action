@@ -24,9 +24,10 @@ jobs:
     - name: Run elm-review
       uses: ./
       with:
-        elm_review: yes | elm-review --fix-all
+        elm_review: elm-review
         elm_json: __tests__/elm/elm.json
         elm_files: __tests__/elm/src/Good.elm
+        fix_all: 'true'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     # - name: Run elm-review (should-fail)
