@@ -6,9 +6,9 @@ branding:
   color: orange
 inputs:
   name:
-    description: 'This action creates its own entry in the checks called "Elm Review", you can change the check name shown with this input.'
+    description: 'This action creates its own entry in the checks called "elm-review", you can change the check name shown with this input.'
     required: true
-    default: 'Elm Review'
+    default: 'elm-review'
   elm_review:
     description: 'Specify the path to elm-review.'
     required: true
