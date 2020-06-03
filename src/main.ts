@@ -71,7 +71,11 @@ const runElmReview = async (): Promise<ReviewErrors> => {
     ignoreReturnCode: true,
     listeners: {
       stdout: (data: Buffer) => {
-        output += data.toString()
+        try {
+          output += data.toString()
+        } catch (e) {
+          core.debug('error getting output')
+        }
       },
       stderr: (data: Buffer) => {
         errput += data.toString()
