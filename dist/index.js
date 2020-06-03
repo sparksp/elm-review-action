@@ -3041,7 +3041,12 @@ const runElmReview = async () => {
         ignoreReturnCode: true,
         listeners: {
             stdout: (data) => {
-                output += data.toString();
+                try {
+                    output += data.toString();
+                }
+                catch (e) {
+                    core.debug('error getting output');
+                }
             },
             stderr: (data) => {
                 errput += data.toString();
