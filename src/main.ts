@@ -28,13 +28,21 @@ const inputElmCompiler = core.getInput('elm_compiler')
 const inputElmFormat = core.getInput('elm_format')
 const inputElmJson = core.getInput('elm_json')
 const inputElmFiles = core.getInput('elm_files')
+const inputFixAll = core.getInput('fix_all', {required: true})
 
 const elmReviewArgs = (): string[] => {
-  const arg = (flag: string, value: string): string[] => {
+  const arg = (flag_: string, value: string): string[] => {
     if (value === '') {
       return []
     }
-    return [flag, value]
+    return [flag_, value]
+  }
+
+  const flag = (flag_: string, value: string): string[] => {
+    if (value !== 'true') {
+      return []
+    }
+    return [flag_]
   }
 
   const globFiles = (pattern: string): string[] => {
@@ -50,7 +58,8 @@ const elmReviewArgs = (): string[] => {
     ...arg('--config', inputElmReviewConfig),
     ...arg('--compiler', inputElmCompiler),
     ...arg('--elm-format-path', inputElmFormat),
-    ...arg('--elmjson', inputElmJson)
+    ...arg('--elmjson', inputElmJson),
+    ...flag('--fix-all-without-prompt', inputFixAll)
   ]
 }
 

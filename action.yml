@@ -31,6 +31,10 @@ inputs:
       - For packages: src/ and tests/
       - For applications: tests/ and the "source-directories" in the project's elm.json
     required: false
+  fix_all:
+    description: 'Apply all available automatic fixes and report the remaining errors.'
+    required: false
+    default: 'false'
 runs:
   using: 'node12'
   main: 'dist/index.js'
