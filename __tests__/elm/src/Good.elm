@@ -5,3 +5,7 @@ import Html
 
 main =
     Html.text "Good"
+
+
+unused =
+    3
