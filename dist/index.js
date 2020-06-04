@@ -3063,16 +3063,19 @@ const runElmReview = async () => {
 const reportErrors = (errors) => {
     return errors.errors.flatMap((error) => {
         return error.errors.map((message) => {
-            return {
+            const annotation = {
                 path: error.path,
                 annotation_level: 'failure',
                 start_line: message.region.start.line,
-                start_column: message.region.start.column,
                 end_line: message.region.end.line,
-                end_column: message.region.end.column,
                 title: `${message.rule}: ${message.message}`,
                 message: wrap_1.wrap(checkMessageWrap, message.details.join('\n\n'))
             };
+            if (message.region.start.line === message.region.end.line) {
+                annotation.start_column = message.region.start.column;
+                annotation.end_column = message.region.end.column;
+            }
+            return annotation;
         });
     });
 };
