@@ -1,6 +1,6 @@
 [![elm-review-action status](https://github.com/sparksp/elm-review-action/workflows/build-test/badge.svg)](https://github.com/sparksp/elm-review-action/actions)
 
-# Elm Review
+# elm-review
 
 Check the quality of your [Elm] code using [elm-review] in a GitHub workflow - any reports found will be added as annotations on your files.
 
@@ -69,7 +69,7 @@ This snippet shows an example of what the option defaults are like, however ther
 
 ### name
 
-This action creates its own entry in the checks called "Elm Review", you can change the check name shown with this input.
+This action creates its own entry in the checks called "elm-review", you can change the check name shown with this input.
 
 
 ### elm_review
