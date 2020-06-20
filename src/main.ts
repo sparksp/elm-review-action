@@ -1,3 +1,5 @@
+/* eslint-disable camelcase */
+
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import * as github from '@actions/github'
@@ -15,9 +17,20 @@ type UpdateCheckResponseType = GetResponseTypeFromEndpointMethod<
 
 const octokit = new Octokit()
 const {owner, repo} = github.context.repo
-// eslint-disable-next-line camelcase
+
 const head_sha =
   github.context.payload.pull_request?.head?.sha || github.context.sha
+
+function detectFork(): boolean {
+  const payload = github.context.payload
+  if (payload.pull_request) {
+    return (
+      payload.pull_request?.head?.repo?.full_name !==
+      payload.repository?.full_name
+    )
+  }
+  return false
+}
 
 const checkName = core.getInput('name', {required: true})
 const checkMessageWrap = 80
@@ -111,7 +124,6 @@ type Location = {
   column: number
 }
 
-/* eslint-disable camelcase */
 type OctokitAnnotation = {
   path: string
   start_line: number
@@ -147,7 +159,6 @@ const reportErrors = (errors: ReviewErrors): OctokitAnnotation[] => {
     )
   })
 }
-/* eslint-enable camelcase */
 
 type CliError = {
   type: 'error'
@@ -193,7 +204,6 @@ function reportCliError(error: Error | CliError | UnexpectedError): void {
   issueError(message, opts)
 }
 
-/* eslint-disable camelcase */
 async function createCheckSuccess(): Promise<CreateCheckResponseType> {
   return octokit.checks.create({
     owner,
@@ -267,17 +277,39 @@ async function createCheckAnnotations(
     )
   }
 }
-/* eslint-enable camelcase */
+
+function issueErrors(annotations: OctokitAnnotation[]): void {
+  for (const annotation of annotations) {
+    issueError(annotation.title || annotation.message, {
+      file: annotation.path,
+      line: annotation.start_line,
+      col: annotation.start_column || 0
+    })
+  }
+}
 
 async function run(): Promise<void> {
   try {
     const report = await runElmReview()
     const annotations = reportErrors(report)
+    const annotationCount = annotations.length
 
-    if (annotations.length > 0) {
-      await createCheckAnnotations(annotations)
+    if (detectFork()) {
+      if (annotationCount > 0) {
+        issueErrors(annotations)
+
+        core.setFailed(
+          `I found ${annotationCount} ${
+            annotationCount === 1 ? 'problem' : 'problems'
+          } while reviewing your project.`
+        )
+      }
     } else {
-      await createCheckSuccess()
+      if (annotationCount > 0) {
+        await createCheckAnnotations(annotations)
+      } else {
+        await createCheckSuccess()
+      }
     }
   } catch (e) {
     try {

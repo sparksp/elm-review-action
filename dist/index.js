@@ -2973,6 +2973,7 @@ function checkMode (stat, options) {
 
 "use strict";
 
+/* eslint-disable camelcase */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
@@ -3002,8 +3003,15 @@ const action_1 = __webpack_require__(725);
 const wrap_1 = __webpack_require__(738);
 const octokit = new action_1.Octokit();
 const { owner, repo } = github.context.repo;
-// eslint-disable-next-line camelcase
 const head_sha = ((_b = (_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.head) === null || _b === void 0 ? void 0 : _b.sha) || github.context.sha;
+function detectFork() {
+    var _a, _b, _c, _d;
+    const payload = github.context.payload;
+    if (payload.pull_request) {
+        return (((_c = (_b = (_a = payload.pull_request) === null || _a === void 0 ? void 0 : _a.head) === null || _b === void 0 ? void 0 : _b.repo) === null || _c === void 0 ? void 0 : _c.full_name) !== ((_d = payload.repository) === null || _d === void 0 ? void 0 : _d.full_name));
+    }
+    return false;
+}
 const checkName = core.getInput('name', { required: true });
 const checkMessageWrap = 80;
 const inputElmReview = core.getInput('elm_review', { required: true });
@@ -3097,7 +3105,6 @@ function reportCliError(error) {
     }
     issueError(message, opts);
 }
-/* eslint-disable camelcase */
 async function createCheckSuccess() {
     return octokit.checks.create({
         owner,
@@ -3151,16 +3158,33 @@ async function createCheckAnnotations(annotations) {
         await updateCheckAnnotations(check.data.id, annotations.slice(i, i + chunkSize), title, summary);
     }
 }
-/* eslint-enable camelcase */
+function issueErrors(annotations) {
+    for (const annotation of annotations) {
+        issueError(annotation.title || annotation.message, {
+            file: annotation.path,
+            line: annotation.start_line,
+            col: annotation.start_column || 0
+        });
+    }
+}
 async function run() {
     try {
         const report = await runElmReview();
         const annotations = reportErrors(report);
-        if (annotations.length > 0) {
-            await createCheckAnnotations(annotations);
+        const annotationCount = annotations.length;
+        if (detectFork()) {
+            if (annotationCount > 0) {
+                issueErrors(annotations);
+                core.setFailed(`I found ${annotationCount} ${annotationCount === 1 ? 'problem' : 'problems'} while reviewing your project.`);
+            }
         }
         else {
-            await createCheckSuccess();
+            if (annotationCount > 0) {
+                await createCheckAnnotations(annotations);
+            }
+            else {
+                await createCheckSuccess();
+            }
         }
     }
     catch (e) {
