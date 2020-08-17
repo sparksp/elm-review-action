@@ -31,6 +31,9 @@ inputs:
       - For packages: src/ and tests/
       - For applications: tests/ and the "source-directories" in the project's elm.json
     required: false
+  working-directory:
+    description: 'Change the working directory'
+    required: false
 runs:
   using: 'node12'
   main: 'dist/index.js'
