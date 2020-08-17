@@ -64,6 +64,7 @@ This snippet shows an example of what the option defaults are like, however ther
         # elm_files: |
         #   src/
         #   tests/
+        # working-directory: ./
 ```
 
 
@@ -102,3 +103,8 @@ Specify the path to the elm.json file of the project. By default, the one in the
 List of Elm files or directories you wish to review.  Unless files or directories are specified, `elm-review` will look at:
 - For packages: `src/` and `tests/`
 - For applications: the `source-directories` in the project's `elm.json` and `tests/`
+
+
+### working-directory
+
+Optional working directory, defaults to the current directory.

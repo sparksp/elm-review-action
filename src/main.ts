@@ -42,6 +42,8 @@ const inputElmFormat = core.getInput('elm_format')
 const inputElmJson = core.getInput('elm_json')
 const inputElmFiles = core.getInput('elm_files')
 
+const workingDirectory = core.getInput('working-directory')
+
 const elmReviewArgs = (): string[] => {
   const arg = (flag: string, value: string): string[] => {
     if (value === '') {
@@ -72,6 +74,7 @@ const runElmReview = async (): Promise<ReviewErrors> => {
   let errput = ''
 
   const options = {
+    cwd: workingDirectory,
     ignoreReturnCode: true,
     listeners: {
       stdout: (data: Buffer) => {

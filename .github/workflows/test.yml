@@ -24,9 +24,10 @@ jobs:
     - name: Run elm-review
       uses: ./
       with:
-        # elm_review: elm-review
-        elm_json: __tests__/elm/elm.json
-        elm_files: __tests__/elm/src/Good.elm
+        # elm_review: elm-review
+        # elm_json: elm.json
+        elm_files: src/Good.elm
+        working-directory: ${{ github.workspace }}/__tests__/elm
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     # - name: Run elm-review (should-fail)
@@ -34,6 +35,7 @@ jobs:
     #   with:
     #     name: elm-review (should-fail)
     #     # elm_review: elm-review
-    #     elm_json: __tests__/elm/elm.json
+    #     # elm_json: elm.json
+    #     working-directory: ${{ github.workspace }}/__tests__/elm
     #   env:
     #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
