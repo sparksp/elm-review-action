@@ -33,7 +33,7 @@ jobs:
     - uses: actions/checkout@v2
     - run: yarn --frozen-lockfile
     - name: Add elm-review, elm and elm-format to path
-      run: echo ::add-path::$(yarn bin)
+      run: yarn bin >> $GITHUB_PATH
     - uses: sparksp/elm-review-action@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
