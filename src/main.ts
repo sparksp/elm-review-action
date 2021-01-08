@@ -187,10 +187,6 @@ function issueError(message: string, opts: ErrorOpts): void {
   process.exitCode = core.ExitCode.Failure
 }
 
-function reportCliError(error: Error): void
-function reportCliError(error: CliError): void
-function reportCliError(error: UnexpectedError): void
-
 function reportCliError(error: Error | CliError | UnexpectedError): void {
   let message: string
   if ('message' in error) {

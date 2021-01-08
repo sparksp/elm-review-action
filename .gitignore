@@ -100,3 +100,6 @@ lib/**/*
 
 # Ignore Elm cache
 elm-stuff
+
+# Ignore IDE config
+.idea
