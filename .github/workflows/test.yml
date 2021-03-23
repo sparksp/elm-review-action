@@ -24,7 +24,7 @@ jobs:
     - name: Run elm-review
       uses: ./
       with:
-        # elm_review: elm-review
+        elm_review: npx --no-install elm-review
         # elm_json: elm.json
         elm_files: src/Good.elm
         working-directory: ${{ github.workspace }}/__tests__/elm
