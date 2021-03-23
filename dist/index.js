@@ -125,13 +125,19 @@ const reportErrors = (errors) => {
     });
 };
 function issueError(message, opts) {
-    command_1.issueCommand('error', opts, message.trim().replace('\n', '%0A'));
+    for (const line of message.trim().split('\n')) {
+        command_1.issueCommand('error', opts, line);
+    }
     process.exitCode = core.ExitCode.Failure;
+}
+function messageString(message) {
+    // Sometimes elm-review returns an array of message (usually just one message)
+    return Array(message).join('\n');
 }
 function reportCliError(error) {
     let message;
     if ('message' in error) {
-        message = error.message;
+        message = messageString(error.message);
     }
     else {
         message = error.error;
@@ -207,6 +213,10 @@ function issueErrors(annotations) {
 async function run() {
     try {
         const report = await runElmReview();
+        if (report.type === 'error') {
+            reportCliError(report);
+            return;
+        }
         const annotations = reportErrors(report);
         const annotationCount = annotations.length;
         if (detectFork()) {
