@@ -1495,7 +1495,8 @@ function detectFork() {
     var _a, _b, _c, _d;
     const payload = github.context.payload;
     if (payload.pull_request) {
-        return (((_c = (_b = (_a = payload.pull_request) === null || _a === void 0 ? void 0 : _a.head) === null || _b === void 0 ? void 0 : _b.repo) === null || _c === void 0 ? void 0 : _c.full_name) !== ((_d = payload.repository) === null || _d === void 0 ? void 0 : _d.full_name));
+        return (((_c = (_b = (_a = payload.pull_request) === null || _a === void 0 ? void 0 : _a.head) === null || _b === void 0 ? void 0 : _b.repo) === null || _c === void 0 ? void 0 : _c.full_name) !==
+            ((_d = payload.repository) === null || _d === void 0 ? void 0 : _d.full_name));
     }
     return false;
 }
