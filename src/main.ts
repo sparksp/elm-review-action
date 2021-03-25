@@ -69,7 +69,7 @@ const elmReviewArgs = (): string[] => {
   ]
 }
 
-const runElmReview = async (): Promise<ReviewErrors> => {
+const runElmReview = async (): Promise<ReviewErrors | CliError> => {
   let output = ''
   let errput = ''
 
@@ -167,7 +167,7 @@ type CliError = {
   type: 'error'
   title: string
   path: string
-  message: string
+  message: string | string[]
 }
 
 type UnexpectedError = {
@@ -183,14 +183,21 @@ type ErrorOpts = {
 }
 
 function issueError(message: string, opts: ErrorOpts): void {
-  issueCommand('error', opts, message.trim().replace('\n', '%0A'))
+  for (const line of message.trim().split('\n')) {
+    issueCommand('error', opts, line)
+  }
   process.exitCode = core.ExitCode.Failure
+}
+
+function messageString(message: string | string[]): string {
+  // Sometimes elm-review returns an array of message (usually just one message)
+  return Array(message).join('\n')
 }
 
 function reportCliError(error: Error | CliError | UnexpectedError): void {
   let message: string
   if ('message' in error) {
-    message = error.message
+    message = messageString(error.message)
   } else {
     message = error.error
   }
@@ -290,6 +297,12 @@ function issueErrors(annotations: OctokitAnnotation[]): void {
 async function run(): Promise<void> {
   try {
     const report = await runElmReview()
+
+    if (report.type === 'error') {
+      reportCliError(report)
+      return
+    }
+
     const annotations = reportErrors(report)
     const annotationCount = annotations.length
 
