@@ -4,16 +4,13 @@ import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import * as github from '@actions/github'
 import {issueCommand} from '@actions/core/lib/command'
-import {Octokit} from '@octokit/action'
-import {GetResponseTypeFromEndpointMethod} from '@octokit/types'
+import {Octokit, RestEndpointMethodTypes} from '@octokit/action'
 import {wrap} from './wrap'
 
-type CreateCheckResponseType = GetResponseTypeFromEndpointMethod<
-  typeof octokit.checks.create
->
-type UpdateCheckResponseType = GetResponseTypeFromEndpointMethod<
-  typeof octokit.checks.update
->
+type ChecksCreateResponse =
+  RestEndpointMethodTypes['checks']['create']['response']
+type ChecksUpdateResponse =
+  RestEndpointMethodTypes['checks']['update']['response']
 
 const octokit = new Octokit()
 const {owner, repo} = github.context.repo
@@ -141,25 +138,23 @@ type OctokitAnnotation = {
 
 const reportErrors = (errors: ReviewErrors): OctokitAnnotation[] => {
   return errors.errors.flatMap((error: ReviewError) => {
-    return error.errors.map(
-      (message: ReviewMessage): OctokitAnnotation => {
-        const annotation: OctokitAnnotation = {
-          path: error.path,
-          annotation_level: 'failure',
-          start_line: message.region.start.line,
-          end_line: message.region.end.line,
-          title: `${message.rule}: ${message.message}`,
-          message: wrap(checkMessageWrap, message.details.join('\n\n'))
-        }
-
-        if (message.region.start.line === message.region.end.line) {
-          annotation.start_column = message.region.start.column
-          annotation.end_column = message.region.end.column
-        }
-
-        return annotation
+    return error.errors.map((message: ReviewMessage): OctokitAnnotation => {
+      const annotation: OctokitAnnotation = {
+        path: error.path,
+        annotation_level: 'failure',
+        start_line: message.region.start.line,
+        end_line: message.region.end.line,
+        title: `${message.rule}: ${message.message}`,
+        message: wrap(checkMessageWrap, message.details.join('\n\n'))
       }
-    )
+
+      if (message.region.start.line === message.region.end.line) {
+        annotation.start_column = message.region.start.column
+        annotation.end_column = message.region.end.column
+      }
+
+      return annotation
+    })
   })
 }
 
@@ -210,8 +205,8 @@ function reportCliError(error: Error | CliError | UnexpectedError): void {
   issueError(message, opts)
 }
 
-async function createCheckSuccess(): Promise<CreateCheckResponseType> {
-  return octokit.checks.create({
+async function createCheckSuccess(): Promise<ChecksCreateResponse> {
+  return octokit.rest.checks.create({
     owner,
     repo,
     name: checkName,
@@ -230,8 +225,8 @@ async function updateCheckAnnotations(
   annotations: OctokitAnnotation[],
   title: string,
   summary: string
-): Promise<UpdateCheckResponseType> {
-  return octokit.checks.update({
+): Promise<ChecksUpdateResponse> {
+  return octokit.rest.checks.update({
     owner,
     repo,
     check_run_id,
@@ -259,7 +254,7 @@ async function createCheckAnnotations(
   } while reviewing your project.`
 
   // Push first 50 annotations
-  const check = await octokit.checks.create({
+  const check = await octokit.rest.checks.create({
     owner,
     repo,
     name: checkName,
@@ -323,7 +318,8 @@ async function run(): Promise<void> {
         await createCheckSuccess()
       }
     }
-  } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (e: any) {
     try {
       const error = JSON.parse(e.message)
       reportCliError(error)
