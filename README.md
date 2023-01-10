@@ -22,13 +22,25 @@ This is the view of "files changed" in a pull request with the elm-review annota
 ![annotations](docs/annotations.png)
 
 
+## Permissions
+
+This action uses the GitHub Checks API. You will need a token with the [write checks permission](https://docs.github.com/en/actions/security-guides/automatic-token-authentication#permissions-for-the-github_token). You can do this for the whole workflow or per-job.
+
+```yaml
+permissions:
+  checks: write
+```
+
+
 ## Finding elm-review
 
-You must have `elm-review`, `elm-format` and the `elm` compiler available in your build, here is an example using `add-path` for when they're all dependencies in `package.json`.
+You must have `elm-review`, `elm-format` and the `elm` compiler available in your build, here is an example using `$GITHUB_PATH` for when they're all dependencies in `package.json`.
 
 ```yaml
 jobs:
   lint:
+    permissions:
+      checks: write
     steps:
     - uses: actions/checkout@v2
     - run: yarn --frozen-lockfile
