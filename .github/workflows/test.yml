@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - run: yarn
+    - run: yarn --frozen-lockfile
     - run: yarn run all
 
   test: # make sure the action works on a clean machine without building
@@ -20,9 +20,13 @@ jobs:
       checks: write
     steps:
     - uses: actions/checkout@v2
-    - run: yarn --frozen-lockfile
+
+    - name: Install dependencies
+      run: yarn --frozen-lockfile
+
     - name: Add elm-review, elm and elm-format to path
       run: yarn bin >> $GITHUB_PATH
+
     - name: Run elm-review
       uses: ./
       with:
@@ -32,6 +36,7 @@ jobs:
         working-directory: ${{ github.workspace }}/__tests__/elm
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     # - name: Run elm-review (should-fail)
     #   uses: ./
     #   with:
