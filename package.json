@@ -41,7 +41,7 @@
     "@typescript-eslint/eslint-plugin": "^7.11.0",
     "@typescript-eslint/parser": "^7.11.0",
     "@vercel/ncc": "^0.38.1",
-    "elm-review": "^2.7.5",
+    "elm-review": "^2.11.2",
     "elm-tooling": "^1.15.1",
     "eslint": "^8.0",
     "eslint-plugin-github": "^5.0.0-2",
