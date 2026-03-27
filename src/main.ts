@@ -3,7 +3,6 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import * as github from '@actions/github'
-import {issueCommand} from '@actions/core/lib/command'
 import {Octokit, RestEndpointMethodTypes} from '@octokit/action'
 import {wrap} from './wrap'
 
@@ -86,13 +85,12 @@ const runElmReview = async (): Promise<ReviewErrors | CliError> => {
 
   await exec.exec(inputElmReview, elmReviewArgs(), options)
 
-  if (errput.length > 0) {
-    throw Error(errput)
-  }
-
   try {
     return JSON.parse(output)
   } catch (_) {
+    if (errput.length > 0) {
+      throw Error(errput)
+    }
     throw Error(output)
   }
 }
@@ -179,7 +177,11 @@ type ErrorOpts = {
 
 function issueError(message: string, opts: ErrorOpts): void {
   for (const line of message.trim().split('\n')) {
-    issueCommand('error', opts, line)
+    core.error(line, {
+      file: opts.file,
+      startLine: opts.line,
+      startColumn: opts.col
+    })
   }
   process.exitCode = core.ExitCode.Failure
 }

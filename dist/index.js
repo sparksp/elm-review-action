@@ -35,7 +35,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 const github = __importStar(__nccwpck_require__(5438));
-const command_1 = __nccwpck_require__(7351);
 const action_1 = __nccwpck_require__(1231);
 const wrap_1 = __nccwpck_require__(5372);
 const octokit = new action_1.Octokit();
@@ -98,13 +97,13 @@ const runElmReview = async () => {
         silent: true
     };
     await exec.exec(inputElmReview, elmReviewArgs(), options);
-    if (errput.length > 0) {
-        throw Error(errput);
-    }
     try {
         return JSON.parse(output);
     }
     catch (_) {
+        if (errput.length > 0) {
+            throw Error(errput);
+        }
         throw Error(output);
     }
 };
@@ -129,7 +128,11 @@ const reportErrors = (errors) => {
 };
 function issueError(message, opts) {
     for (const line of message.trim().split('\n')) {
-        (0, command_1.issueCommand)('error', opts, line);
+        core.error(line, {
+            file: opts.file,
+            startLine: opts.line,
+            startColumn: opts.col
+        });
     }
     process.exitCode = core.ExitCode.Failure;
 }
