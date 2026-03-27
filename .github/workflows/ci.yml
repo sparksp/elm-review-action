@@ -1,0 +1,68 @@
+name: "ci"
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - 'releases/*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-node@v6
+      with:
+        node-version: 22
+    - run: yarn --frozen-lockfile
+    - run: yarn run all
+
+  test-pass:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-node@v6
+      with:
+        node-version: 22
+    - run: yarn --frozen-lockfile
+    - name: Add elm-review, elm and elm-format to path
+      run: yarn bin >> $GITHUB_PATH
+    - name: Run elm-review (should pass)
+      uses: ./
+      with:
+        elm_review: npx --no-install elm-review
+        elm_files: src/Good.elm
+        working-directory: ${{ github.workspace }}/__tests__/elm
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-fail:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-node@v6
+      with:
+        node-version: 22
+    - run: yarn --frozen-lockfile
+    - name: Add elm-review, elm and elm-format to path
+      run: yarn bin >> $GITHUB_PATH
+    - name: Run elm-review (should report errors)
+      id: elm-review
+      uses: ./
+      continue-on-error: true
+      with:
+        name: elm-review (errors expected)
+        elm_review: npx --no-install elm-review
+        elm_files: src/Bad.elm
+        working-directory: ${{ github.workspace }}/__tests__/elm
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Verify elm-review found errors
+      if: steps.elm-review.outcome == 'success'
+      run: |
+        echo "::error::Expected elm-review to report errors but it passed"
+        exit 1
