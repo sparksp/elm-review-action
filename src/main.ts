@@ -3,7 +3,6 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import * as github from '@actions/github'
-import {issueCommand} from '@actions/core/lib/command'
 import {Octokit, RestEndpointMethodTypes} from '@octokit/action'
 import {wrap} from './wrap'
 
@@ -179,7 +178,11 @@ type ErrorOpts = {
 
 function issueError(message: string, opts: ErrorOpts): void {
   for (const line of message.trim().split('\n')) {
-    issueCommand('error', opts, line)
+    core.error(line, {
+      file: opts.file,
+      startLine: opts.line,
+      startColumn: opts.col
+    })
   }
   process.exitCode = core.ExitCode.Failure
 }
