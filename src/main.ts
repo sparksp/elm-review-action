@@ -85,13 +85,12 @@ const runElmReview = async (): Promise<ReviewErrors | CliError> => {
 
   await exec.exec(inputElmReview, elmReviewArgs(), options)
 
-  if (errput.length > 0) {
-    throw Error(errput)
-  }
-
   try {
     return JSON.parse(output)
   } catch (_) {
+    if (errput.length > 0) {
+      throw Error(errput)
+    }
     throw Error(output)
   }
 }
