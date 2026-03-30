@@ -2342,10 +2342,10 @@ elm-review@^2.13.5:
   resolved "https://registry.yarnpkg.com/elm-solve-deps-wasm/-/elm-solve-deps-wasm-2.0.0.tgz#8214705876fbcd9789cf6ab2db45ec781b5c1234"
   integrity sha512-11OV8FgB9qsth/F94q2SJjb1MoEgbworSyNM1L+YlxVoaxp7wtWPyA8cNcPEkSoIKG1B8Tqg68ED1P6dVamHSg==
 
-elm-tooling@^1.15.1:
-  version "1.15.1"
-  resolved "https://registry.yarnpkg.com/elm-tooling/-/elm-tooling-1.15.1.tgz#1274f97cdfe67a9d8361607a53447bd235cb1458"
-  integrity sha512-+rRYa7gzz6l2/Ip2i197MqkW5abOwPOP/+WlyyatLDeDhh+JR0HUMlZJYenCYodBeG/xW5xW3pRYQ2onf5bIAw==
+elm-tooling@^1.17.0:
+  version "1.17.0"
+  resolved "https://registry.yarnpkg.com/elm-tooling/-/elm-tooling-1.17.0.tgz#b290dcf0dced01496ab56bb54b26f1a4fb737aa4"
+  integrity sha512-Y6umJYX7w/tV08pgmNF95nkvPq+xOvhirJz6LIt4YUj2I9V2W0V4Yb1E0IUZ/9X9yUgiEcFpKyObav4QMWCPrg==
 
 emittery@^0.13.1:
   version "0.13.1"
