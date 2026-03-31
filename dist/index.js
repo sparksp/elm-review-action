@@ -262,7 +262,7 @@ run();
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.wrap = void 0;
+exports.wrap = wrap;
 function wrap(length, text) {
     return text
         .split('\n')
@@ -272,7 +272,6 @@ function wrap(length, text) {
     })
         .join('\n');
 }
-exports.wrap = wrap;
 function wrapper(length, words, line) {
     if (words.length === 0) {
         return line;
